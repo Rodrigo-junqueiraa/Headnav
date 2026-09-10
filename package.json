@@ -5,15 +5,21 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "predev": "node scripts/fetch-assets.mjs",
     "dev": "wxt",
+    "prebuild": "node scripts/fetch-assets.mjs",
     "build": "wxt build",
     "zip": "wxt zip",
     "compile": "tsc --noEmit",
-    "postinstall": "wxt prepare"
+    "setup:assets": "node scripts/fetch-assets.mjs",
+    "postinstall": "wxt prepare && node scripts/fetch-assets.mjs"
   },
   "devDependencies": {
     "@types/chrome": "^0.2.9",
     "typescript": "^7.0.2",
     "wxt": "^0.21.4"
+  },
+  "dependencies": {
+    "@mediapipe/tasks-vision": "^1.0.1"
   }
 }

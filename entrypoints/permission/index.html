@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HeadNav — Camera access</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #ffffff;
+        --fg: #1a1a1a;
+        --muted: #666;
+        --accent: #2563eb;
+        --ok: #16a34a;
+        --error: #dc2626;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #16181d;
+          --fg: #f2f3f5;
+          --muted: #9aa0a6;
+        }
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        background: var(--bg);
+        color: var(--fg);
+        display: flex;
+        min-height: 100vh;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+      }
+      main { max-width: 460px; text-align: center; }
+      h1 { font-size: 1.4rem; margin: 0 0 8px; }
+      p { color: var(--muted); line-height: 1.5; }
+      button {
+        margin-top: 16px;
+        padding: 12px 22px;
+        font-size: 1rem;
+        border: none;
+        border-radius: 10px;
+        background: var(--accent);
+        color: #fff;
+        cursor: pointer;
+      }
+      button:hover { filter: brightness(1.05); }
+      #status { margin-top: 18px; font-weight: 600; min-height: 1.4em; }
+      #status.ok { color: var(--ok); }
+      #status.error { color: var(--error); }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Allow camera access</h1>
+      <p>
+        HeadNav needs your camera to read head and eye movements. All processing happens
+        locally in your browser &mdash; no video ever leaves your machine.
+      </p>
+      <button id="grant" type="button">Allow camera</button>
+      <div id="status"></div>
+    </main>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

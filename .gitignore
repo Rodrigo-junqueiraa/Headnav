@@ -4,3 +4,7 @@ node_modules
 *.zip
 stats.html
 .DS_Store
+
+# Generated/downloaded by scripts/fetch-assets.mjs
+public/wasm
+public/models

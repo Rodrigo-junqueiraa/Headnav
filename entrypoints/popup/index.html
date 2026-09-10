@@ -4,9 +4,105 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>HeadNav</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #ffffff;
+        --fg: #1a1a1a;
+        --muted: #6b7280;
+        --line: #e5e7eb;
+        --accent: #2563eb;
+        --ok: #16a34a;
+        --off: #9ca3af;
+        --error: #dc2626;
+        --bar-bg: #eceef1;
+        --bar-fill: #2563eb;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #16181d;
+          --fg: #f2f3f5;
+          --muted: #9aa0a6;
+          --line: #2a2d34;
+          --bar-bg: #2a2d34;
+        }
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        width: 300px;
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        background: var(--bg);
+        color: var(--fg);
+        padding: 14px;
+      }
+      header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+      h1 { font-size: 1.05rem; margin: 0; }
+      #dot {
+        width: 10px; height: 10px; border-radius: 50%;
+        background: var(--off); display: inline-block;
+      }
+      #dot.on { background: var(--ok); }
+      .buttons { display: flex; gap: 8px; margin-bottom: 12px; }
+      button {
+        flex: 1;
+        padding: 9px 10px;
+        font-size: 0.85rem;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--accent);
+        color: #fff;
+        cursor: pointer;
+      }
+      button.secondary { background: transparent; color: var(--fg); }
+      button:hover { filter: brightness(1.05); }
+      .row {
+        display: flex; align-items: center; justify-content: space-between;
+        font-size: 0.82rem; padding: 5px 0; border-bottom: 1px solid var(--line);
+      }
+      .row span:first-child { color: var(--muted); }
+      .row span:last-child { font-variant-numeric: tabular-nums; font-weight: 600; }
+      .bar { margin: 7px 0; }
+      .bar .label { display: flex; justify-content: space-between; font-size: 0.78rem; color: var(--muted); }
+      .bar .track { height: 6px; background: var(--bar-bg); border-radius: 999px; overflow: hidden; margin-top: 3px; }
+      .bar .fill { height: 100%; width: 0%; background: var(--bar-fill); transition: width 80ms linear; }
+      #error { margin-top: 10px; color: var(--error); font-size: 0.8rem; min-height: 1em; }
+      #hint { margin-top: 10px; color: var(--muted); font-size: 0.75rem; line-height: 1.4; }
+    </style>
   </head>
   <body>
-    <div id="app"></div>
+    <header>
+      <h1>HeadNav</h1>
+      <span id="dot" title="detection status"></span>
+    </header>
+
+    <div class="buttons">
+      <button id="toggle" type="button">Start</button>
+      <button id="grant" class="secondary" type="button">Camera access</button>
+    </div>
+
+    <div class="row"><span>Face detected</span><span id="face">&mdash;</span></div>
+    <div class="row"><span>FPS</span><span id="fps">&mdash;</span></div>
+    <div class="row"><span>Yaw (turn)</span><span id="yaw">&mdash;</span></div>
+    <div class="row"><span>Pitch (up/down)</span><span id="pitch">&mdash;</span></div>
+    <div class="row"><span>Roll (tilt)</span><span id="roll">&mdash;</span></div>
+
+    <div class="bar">
+      <div class="label"><span>Blink left</span><span id="blinkLeftVal">0%</span></div>
+      <div class="track"><div id="blinkLeft" class="fill"></div></div>
+    </div>
+    <div class="bar">
+      <div class="label"><span>Blink right</span><span id="blinkRightVal">0%</span></div>
+      <div class="track"><div id="blinkRight" class="fill"></div></div>
+    </div>
+    <div class="bar">
+      <div class="label"><span>Jaw open</span><span id="jawOpenVal">0%</span></div>
+      <div class="track"><div id="jawOpen" class="fill"></div></div>
+    </div>
+
+    <div id="error"></div>
+    <div id="hint"></div>
+
     <script type="module" src="./main.ts"></script>
   </body>
 </html>
