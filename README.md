@@ -40,7 +40,7 @@ Work in progress. Roadmap:
 | # | Stage | State |
 |---|-------|-------|
 | 0 | Foundation (scaffold, build, repo) | ✅ |
-| 1 | Camera + face landmarks | 🔵 |
+| 1 | Camera + face landmarks | ✅ |
 | 2 | Head-controlled cursor (smoothed) | ⬜ |
 | 3 | Hands-free click (dwell + optional wink) | ⬜ |
 | 4 | Gesture navigation + state machine | ⬜ |

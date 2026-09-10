@@ -70,10 +70,32 @@ async function createLandmarker(): Promise<FaceLandmarker> {
   }
 }
 
+function waitForVideoFrame(video: HTMLVideoElement, timeoutMs = 5000): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (video.readyState >= 2 && video.videoWidth > 0) {
+      resolve();
+      return;
+    }
+    const onReady = (): void => {
+      if (video.videoWidth > 0) {
+        clearTimeout(timer);
+        video.removeEventListener('loadeddata', onReady);
+        resolve();
+      }
+    };
+    const timer = setTimeout(() => {
+      video.removeEventListener('loadeddata', onReady);
+      reject(new Error('Timed out waiting for camera frames'));
+    }, timeoutMs);
+    video.addEventListener('loadeddata', onReady);
+  });
+}
+
 async function main(): Promise<void> {
   const video = document.createElement('video');
   video.muted = true;
   video.playsInline = true;
+  document.body.appendChild(video);
 
   let stream: MediaStream;
   try {
@@ -87,7 +109,13 @@ async function main(): Promise<void> {
   }
 
   video.srcObject = stream;
-  await video.play();
+  try {
+    await video.play();
+    await waitForVideoFrame(video);
+  } catch (error: unknown) {
+    broadcast({ type: 'DETECTION_ERROR', payload: { message: `Video playback failed: ${String(error)}` } });
+    return;
+  }
 
   let landmarker: FaceLandmarker;
   try {
@@ -101,8 +129,14 @@ async function main(): Promise<void> {
   let fps = 0;
   let windowStart = performance.now();
   let lastBroadcast = 0;
+  let lastVideoTime = -1;
+  let lastDetection = performance.now();
 
-  const process = (now: number): void => {
+  const process = (): void => {
+    if (video.currentTime === lastVideoTime) return;
+    lastVideoTime = video.currentTime;
+
+    const now = performance.now();
     let result: FaceLandmarkerResult;
     try {
       result = landmarker.detectForVideo(video, now);
@@ -110,6 +144,7 @@ async function main(): Promise<void> {
       return;
     }
 
+    lastDetection = now;
     frames += 1;
     const elapsed = now - windowStart;
     if (elapsed >= 500) {
@@ -124,19 +159,17 @@ async function main(): Promise<void> {
     }
   };
 
-  if ('requestVideoFrameCallback' in video) {
-    const onFrame = (now: number): void => {
-      process(now);
-      video.requestVideoFrameCallback(onFrame);
-    };
-    video.requestVideoFrameCallback(onFrame);
-  } else {
-    const loop = (): void => {
-      process(performance.now());
-      setTimeout(loop, 33);
-    };
-    loop();
-  }
+  setInterval(process, 50);
+
+  const watchdog = setInterval(() => {
+    if (performance.now() - lastDetection > 2000) {
+      clearInterval(watchdog);
+      broadcast({
+        type: 'DETECTION_ERROR',
+        payload: { message: 'No camera frames are being processed. Try stopping and starting again.' },
+      });
+    }
+  }, 1000);
 }
 
 void main();
