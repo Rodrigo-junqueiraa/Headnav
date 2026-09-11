@@ -1,3 +1,5 @@
+import type { RuntimeMessage, StatusResponse } from '@/lib/messages';
+
 export default defineContentScript({
   matches: ['http://*/*', 'https://*/*'],
   main() {
@@ -22,10 +24,15 @@ export default defineContentScript({
       'z-index: 2147483647',
       'will-change: transform',
       'transition: transform 45ms linear',
+      'display: none',
     ].join('; ');
 
     const setPosition = (x: number, y: number): void => {
       cursor.style.transform = `translate(${x - SIZE / 2}px, ${y - SIZE / 2}px)`;
+    };
+
+    const setVisible = (visible: boolean): void => {
+      cursor.style.display = visible ? 'block' : 'none';
     };
 
     const attach = (): void => {
@@ -35,5 +42,17 @@ export default defineContentScript({
 
     if (document.body) attach();
     else document.addEventListener('DOMContentLoaded', attach, { once: true });
+
+    chrome.runtime.onMessage.addListener((message) => {
+      const runtimeMessage = message as RuntimeMessage;
+      if (runtimeMessage.type === 'DETECTION_STATE') {
+        setVisible(runtimeMessage.payload.running);
+      }
+    });
+
+    chrome.runtime
+      .sendMessage({ type: 'QUERY_STATUS' })
+      .then((response: StatusResponse | undefined) => setVisible(Boolean(response?.running)))
+      .catch(() => {});
   },
 });

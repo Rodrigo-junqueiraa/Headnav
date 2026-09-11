@@ -16,6 +16,7 @@ export type RuntimeMessage =
   | { type: 'STOP_DETECTION' }
   | { type: 'QUERY_STATUS' }
   | { type: 'DETECTION_STATUS'; payload: DetectionStatus }
+  | { type: 'DETECTION_STATE'; payload: { running: boolean } }
   | { type: 'DETECTION_ERROR'; payload: { message: string } };
 
 export type StatusResponse = { running: boolean };
