@@ -48,6 +48,9 @@ export default defineContentScript({
       if (runtimeMessage.type === 'DETECTION_STATE') {
         setVisible(runtimeMessage.payload.running);
       }
+      if (runtimeMessage.type === 'CURSOR_MOVE') {
+        setPosition(runtimeMessage.payload.x * window.innerWidth, runtimeMessage.payload.y * window.innerHeight);
+      }
     });
 
     chrome.runtime
