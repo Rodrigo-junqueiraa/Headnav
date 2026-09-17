@@ -1,5 +1,3 @@
-import type { WinkSide } from './wink';
-
 export type DetectionStatus = {
   running: boolean;
   faceDetected: boolean;
@@ -13,6 +11,8 @@ export type DetectionStatus = {
   timestamp: number;
 };
 
+export type GestureKind = 'back' | 'forward' | 'pause';
+
 export type RuntimeMessage =
   | { type: 'START_DETECTION' }
   | { type: 'STOP_DETECTION' }
@@ -20,7 +20,8 @@ export type RuntimeMessage =
   | { type: 'DETECTION_STATUS'; payload: DetectionStatus }
   | { type: 'DETECTION_STATE'; payload: { running: boolean } }
   | { type: 'CURSOR_MOVE'; payload: { x: number; y: number } }
-  | { type: 'NAVIGATION_GESTURE'; payload: { side: WinkSide | null; progress: number; fired: boolean } }
+  | { type: 'GESTURE_HOLD'; payload: { kind: GestureKind | null; progress: number; fired: boolean } }
+  | { type: 'CLICKING_PAUSED'; payload: { paused: boolean } }
   | { type: 'DETECTION_ERROR'; payload: { message: string } };
 
-export type StatusResponse = { running: boolean };
+export type StatusResponse = { running: boolean; clickingPaused: boolean };

@@ -1,6 +1,7 @@
 import { mapPoseToNormalized } from '@/lib/cursor';
 import { OneEuroFilter } from '@/lib/filter';
-import type { DetectionStatus, RuntimeMessage } from '@/lib/messages';
+import { JawHoldDetector } from '@/lib/jaw';
+import type { DetectionStatus, GestureKind, RuntimeMessage } from '@/lib/messages';
 import { WinkHoldDetector } from '@/lib/wink';
 
 const OFFSCREEN_URL = 'offscreen.html';
@@ -8,7 +9,9 @@ const CURSOR_FILTER_CONFIG = { minCutoff: 0.5, beta: 0.6 };
 const cursorFilterX = new OneEuroFilter(CURSOR_FILTER_CONFIG);
 const cursorFilterY = new OneEuroFilter(CURSOR_FILTER_CONFIG);
 const winkDetector = new WinkHoldDetector();
+const jawDetector = new JawHoldDetector();
 let gestureActive = false;
+let clickingPaused = false;
 
 async function hasOffscreenDocument(): Promise<boolean> {
   const contexts = await chrome.runtime.getContexts({
@@ -17,9 +20,8 @@ async function hasOffscreenDocument(): Promise<boolean> {
   return contexts.length > 0;
 }
 
-async function notifyTabs(running: boolean): Promise<void> {
+async function broadcastToTabs(message: RuntimeMessage): Promise<void> {
   const tabs = await chrome.tabs.query({});
-  const message: RuntimeMessage = { type: 'DETECTION_STATE', payload: { running } };
   await Promise.all(
     tabs.map((tab) =>
       tab.id === undefined ? Promise.resolve() : chrome.tabs.sendMessage(tab.id, message).catch(() => {}),
@@ -33,15 +35,30 @@ async function sendToActiveTab(message: RuntimeMessage): Promise<void> {
   chrome.tabs.sendMessage(tab.id, message).catch(() => {});
 }
 
+function sendGestureHold(kind: GestureKind | null, progress: number, fired: boolean): void {
+  void sendToActiveTab({ type: 'GESTURE_HOLD', payload: { kind, progress, fired } });
+}
+
 function handleDetectionStatus(status: DetectionStatus): void {
   const wink = winkDetector.update(status.blinkLeft, status.blinkRight, status.timestamp);
 
   if (wink.side !== null) {
     gestureActive = true;
-    void sendToActiveTab({
-      type: 'NAVIGATION_GESTURE',
-      payload: { side: wink.side, progress: wink.progress, fired: wink.fired !== null },
-    });
+    jawDetector.reset();
+    sendGestureHold(wink.side === 'left' ? 'back' : 'forward', wink.progress, wink.fired !== null);
+    return;
+  }
+
+  const jaw = jawDetector.update(status.jawOpen, status.timestamp);
+
+  if (jaw.fired) {
+    clickingPaused = !clickingPaused;
+    void broadcastToTabs({ type: 'CLICKING_PAUSED', payload: { paused: clickingPaused } });
+  }
+
+  if (jaw.active) {
+    gestureActive = true;
+    sendGestureHold('pause', jaw.progress, jaw.fired);
     return;
   }
 
@@ -49,7 +66,7 @@ function handleDetectionStatus(status: DetectionStatus): void {
     gestureActive = false;
     cursorFilterX.reset();
     cursorFilterY.reset();
-    void sendToActiveTab({ type: 'NAVIGATION_GESTURE', payload: { side: null, progress: 0, fired: false } });
+    sendGestureHold(null, 0, false);
   }
 
   const { x, y } = mapPoseToNormalized(status.yaw, status.pitch);
@@ -63,7 +80,9 @@ async function startDetection(): Promise<void> {
   cursorFilterX.reset();
   cursorFilterY.reset();
   winkDetector.reset();
+  jawDetector.reset();
   gestureActive = false;
+  clickingPaused = false;
   if (!(await hasOffscreenDocument())) {
     await chrome.offscreen.createDocument({
       url: OFFSCREEN_URL,
@@ -71,7 +90,7 @@ async function startDetection(): Promise<void> {
       justification: 'Run the webcam and face-landmark detection locally for hands-free navigation.',
     });
   }
-  await notifyTabs(true);
+  await broadcastToTabs({ type: 'DETECTION_STATE', payload: { running: true } });
 }
 
 async function stopDetection(): Promise<void> {
@@ -79,8 +98,10 @@ async function stopDetection(): Promise<void> {
     await chrome.offscreen.closeDocument();
   }
   winkDetector.reset();
+  jawDetector.reset();
   gestureActive = false;
-  await notifyTabs(false);
+  clickingPaused = false;
+  await broadcastToTabs({ type: 'DETECTION_STATE', payload: { running: false } });
 }
 
 export default defineBackground(() => {
@@ -99,7 +120,7 @@ export default defineBackground(() => {
           .catch((error: unknown) => sendResponse({ ok: false, error: String(error) }));
         return true;
       case 'QUERY_STATUS':
-        hasOffscreenDocument().then((running) => sendResponse({ running }));
+        hasOffscreenDocument().then((running) => sendResponse({ running, clickingPaused }));
         return true;
       case 'DETECTION_STATUS':
         handleDetectionStatus(runtimeMessage.payload);

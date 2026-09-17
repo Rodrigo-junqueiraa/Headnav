@@ -1,8 +1,7 @@
 import { findClickTarget, performClick } from '@/lib/click';
 import { DwellDetector } from '@/lib/dwell';
-import type { RuntimeMessage, StatusResponse } from '@/lib/messages';
+import type { GestureKind, RuntimeMessage, StatusResponse } from '@/lib/messages';
 import { attractToTarget, smoothPointer, type Point } from '@/lib/pointer';
-import type { WinkSide } from '@/lib/wink';
 
 export default defineContentScript({
   matches: ['http://*/*', 'https://*/*'],
@@ -16,9 +15,11 @@ export default defineContentScript({
     const RING_RADIUS = (RING_SIZE - RING_SHADOW_STROKE) / 2;
     const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
     const DOT_COLOR = 'rgba(37, 99, 235, 0.35)';
+    const PAUSED_DOT_COLOR = 'rgba(148, 163, 184, 0.3)';
     const CLICK_COLOR = 'rgba(34, 197, 94, 0.85)';
     const DWELL_COLOR = '#f59e0b';
-    const GESTURE_COLOR = '#38bdf8';
+    const NAVIGATION_COLOR = '#38bdf8';
+    const PAUSE_COLOR = '#a78bfa';
     const FRAME_GAP_RESET_MS = 500;
     const MAGNET_MAX_AREA_RATIO = 0.25;
 
@@ -54,8 +55,8 @@ export default defineContentScript({
       'box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.55), 0 1px 6px rgba(0, 0, 0, 0.45)',
     ].join('; ');
 
-    const arrow = document.createElement('div');
-    arrow.style.cssText = [
+    const badge = document.createElement('div');
+    badge.style.cssText = [
       'position: absolute',
       'top: 0',
       'left: 0',
@@ -64,7 +65,7 @@ export default defineContentScript({
       'display: none',
       'align-items: center',
       'justify-content: center',
-      'font: 700 18px system-ui, -apple-system, sans-serif',
+      'font: 700 17px system-ui, -apple-system, sans-serif',
       'color: #ffffff',
       'text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85)',
     ].join('; ');
@@ -97,14 +98,15 @@ export default defineContentScript({
 
     const shadowArc = createArc('rgba(0, 0, 0, 0.55)', RING_SHADOW_STROKE);
     const progressArc = createArc(DWELL_COLOR, RING_STROKE);
-    cursor.append(dot, ring, arrow);
+    cursor.append(dot, ring, badge);
 
     const dwell = new DwellDetector<Element>();
     let raw: Point = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
     let display: Point = raw;
     let hasPosition = false;
     let magnet: Element | null = null;
-    let gesture: WinkSide | null = null;
+    let gesture: GestureKind | null = null;
+    let clickingPaused = false;
     let lastFrameMs: number | null = null;
     let frameId: number | null = null;
 
@@ -118,21 +120,47 @@ export default defineContentScript({
       progressArc.setAttribute('stroke-dashoffset', offset);
     };
 
-    const setGesture = (side: WinkSide | null): void => {
-      gesture = side;
-      progressArc.setAttribute('stroke', side === null ? DWELL_COLOR : GESTURE_COLOR);
-      arrow.textContent = side === 'left' ? '←' : '→';
-      arrow.style.display = side === null ? 'none' : 'flex';
-      if (side !== null) dwell.reset();
+    const gestureSymbol = (kind: GestureKind): string => {
+      if (kind === 'back') return '←';
+      if (kind === 'forward') return '→';
+      return clickingPaused ? '▶' : '⏸';
+    };
+
+    const setPaused = (paused: boolean): void => {
+      clickingPaused = paused;
+      dot.style.background = paused ? PAUSED_DOT_COLOR : DOT_COLOR;
+      dot.style.opacity = paused ? '0.6' : '1';
+      magnet = null;
+      dwell.reset();
+      setProgress(0);
+      if (gesture === null) {
+        badge.textContent = '⏸';
+        badge.style.display = paused ? 'flex' : 'none';
+      }
+    };
+
+    const setGesture = (kind: GestureKind | null): void => {
+      gesture = kind;
+      if (kind === null) {
+        progressArc.setAttribute('stroke', DWELL_COLOR);
+        badge.textContent = '⏸';
+        badge.style.display = clickingPaused ? 'flex' : 'none';
+        setProgress(0);
+        return;
+      }
+      progressArc.setAttribute('stroke', kind === 'pause' ? PAUSE_COLOR : NAVIGATION_COLOR);
+      badge.textContent = gestureSymbol(kind);
+      badge.style.display = 'flex';
+      dwell.reset();
       setProgress(0);
     };
 
-    const flashClick = (): void => {
+    const flash = (color: string): void => {
       dot.animate(
         [
-          { transform: 'scale(1)', backgroundColor: CLICK_COLOR },
-          { transform: 'scale(1.5)', backgroundColor: CLICK_COLOR },
-          { transform: 'scale(1)', backgroundColor: DOT_COLOR },
+          { transform: 'scale(1)', backgroundColor: color },
+          { transform: 'scale(1.5)', backgroundColor: color },
+          { transform: 'scale(1)', backgroundColor: clickingPaused ? PAUSED_DOT_COLOR : DOT_COLOR },
         ],
         { duration: 280, easing: 'ease-out' },
       );
@@ -148,6 +176,14 @@ export default defineContentScript({
       const elapsedMs = lastFrameMs === null ? 0 : now - lastFrameMs;
       lastFrameMs = now;
       if (!hasPosition || gesture !== null) return;
+
+      if (clickingPaused) {
+        magnet = null;
+        display = smoothPointer(display, raw, elapsedMs, false);
+        render(display);
+        return;
+      }
+
       if (elapsedMs > FRAME_GAP_RESET_MS) dwell.reset();
 
       const aim = magnet?.isConnected ? attractToTarget(raw, magnet.getBoundingClientRect()) : null;
@@ -166,7 +202,7 @@ export default defineContentScript({
 
       if (fired && target) {
         performClick(target, display.x, display.y);
-        flashClick();
+        flash(CLICK_COLOR);
       }
     };
 
@@ -176,7 +212,7 @@ export default defineContentScript({
       magnet = null;
       lastFrameMs = null;
       setGesture(null);
-      dwell.reset();
+      setPaused(false);
 
       if (visible && frameId === null) {
         frameId = requestAnimationFrame(tick);
@@ -210,21 +246,28 @@ export default defineContentScript({
         }
       }
 
-      if (runtimeMessage.type === 'NAVIGATION_GESTURE') {
-        const { side, progress, fired } = runtimeMessage.payload;
-        if (side !== gesture) setGesture(side);
-        if (side !== null) setProgress(progress);
-        if (fired && side !== null) {
-          flashClick();
-          if (side === 'left') window.history.back();
-          else window.history.forward();
+      if (runtimeMessage.type === 'CLICKING_PAUSED') {
+        setPaused(runtimeMessage.payload.paused);
+      }
+
+      if (runtimeMessage.type === 'GESTURE_HOLD') {
+        const { kind, progress, fired } = runtimeMessage.payload;
+        if (kind !== gesture) setGesture(kind);
+        if (kind !== null) setProgress(progress);
+        if (fired && kind !== null) {
+          flash(kind === 'pause' ? PAUSE_COLOR : NAVIGATION_COLOR);
+          if (kind === 'back') window.history.back();
+          if (kind === 'forward') window.history.forward();
         }
       }
     });
 
     chrome.runtime
       .sendMessage({ type: 'QUERY_STATUS' })
-      .then((response: StatusResponse | undefined) => setVisible(Boolean(response?.running)))
+      .then((response: StatusResponse | undefined) => {
+        setVisible(Boolean(response?.running));
+        if (response?.running) setPaused(Boolean(response.clickingPaused));
+      })
       .catch(() => {});
   },
 });
