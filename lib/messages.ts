@@ -1,3 +1,5 @@
+import type { WinkSide } from './wink';
+
 export type DetectionStatus = {
   running: boolean;
   faceDetected: boolean;
@@ -18,6 +20,7 @@ export type RuntimeMessage =
   | { type: 'DETECTION_STATUS'; payload: DetectionStatus }
   | { type: 'DETECTION_STATE'; payload: { running: boolean } }
   | { type: 'CURSOR_MOVE'; payload: { x: number; y: number } }
+  | { type: 'NAVIGATION_GESTURE'; payload: { side: WinkSide | null; progress: number; fired: boolean } }
   | { type: 'DETECTION_ERROR'; payload: { message: string } };
 
 export type StatusResponse = { running: boolean };

@@ -2,6 +2,7 @@ import { findClickTarget, performClick } from '@/lib/click';
 import { DwellDetector } from '@/lib/dwell';
 import type { RuntimeMessage, StatusResponse } from '@/lib/messages';
 import { attractToTarget, smoothPointer, type Point } from '@/lib/pointer';
+import type { WinkSide } from '@/lib/wink';
 
 export default defineContentScript({
   matches: ['http://*/*', 'https://*/*'],
@@ -16,6 +17,8 @@ export default defineContentScript({
     const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
     const DOT_COLOR = 'rgba(37, 99, 235, 0.35)';
     const CLICK_COLOR = 'rgba(34, 197, 94, 0.85)';
+    const DWELL_COLOR = '#f59e0b';
+    const GESTURE_COLOR = '#38bdf8';
     const FRAME_GAP_RESET_MS = 500;
     const MAGNET_MAX_AREA_RATIO = 0.25;
 
@@ -51,6 +54,21 @@ export default defineContentScript({
       'box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.55), 0 1px 6px rgba(0, 0, 0, 0.45)',
     ].join('; ');
 
+    const arrow = document.createElement('div');
+    arrow.style.cssText = [
+      'position: absolute',
+      'top: 0',
+      'left: 0',
+      `width: ${RING_SIZE}px`,
+      `height: ${RING_SIZE}px`,
+      'display: none',
+      'align-items: center',
+      'justify-content: center',
+      'font: 700 18px system-ui, -apple-system, sans-serif',
+      'color: #ffffff',
+      'text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85)',
+    ].join('; ');
+
     const ring = document.createElementNS(SVG_NS, 'svg');
     ring.setAttribute('viewBox', `0 0 ${RING_SIZE} ${RING_SIZE}`);
     ring.style.cssText = [
@@ -77,14 +95,16 @@ export default defineContentScript({
       return arc;
     };
 
-    const arcs = [createArc('rgba(0, 0, 0, 0.55)', RING_SHADOW_STROKE), createArc('#f59e0b', RING_STROKE)];
-    cursor.append(dot, ring);
+    const shadowArc = createArc('rgba(0, 0, 0, 0.55)', RING_SHADOW_STROKE);
+    const progressArc = createArc(DWELL_COLOR, RING_STROKE);
+    cursor.append(dot, ring, arrow);
 
     const dwell = new DwellDetector<Element>();
     let raw: Point = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
     let display: Point = raw;
     let hasPosition = false;
     let magnet: Element | null = null;
+    let gesture: WinkSide | null = null;
     let lastFrameMs: number | null = null;
     let frameId: number | null = null;
 
@@ -94,7 +114,17 @@ export default defineContentScript({
 
     const setProgress = (progress: number): void => {
       const offset = String(RING_CIRCUMFERENCE * (1 - progress));
-      for (const arc of arcs) arc.setAttribute('stroke-dashoffset', offset);
+      shadowArc.setAttribute('stroke-dashoffset', offset);
+      progressArc.setAttribute('stroke-dashoffset', offset);
+    };
+
+    const setGesture = (side: WinkSide | null): void => {
+      gesture = side;
+      progressArc.setAttribute('stroke', side === null ? DWELL_COLOR : GESTURE_COLOR);
+      arrow.textContent = side === 'left' ? '←' : '→';
+      arrow.style.display = side === null ? 'none' : 'flex';
+      if (side !== null) dwell.reset();
+      setProgress(0);
     };
 
     const flashClick = (): void => {
@@ -117,7 +147,7 @@ export default defineContentScript({
       frameId = requestAnimationFrame(tick);
       const elapsedMs = lastFrameMs === null ? 0 : now - lastFrameMs;
       lastFrameMs = now;
-      if (!hasPosition) return;
+      if (!hasPosition || gesture !== null) return;
       if (elapsedMs > FRAME_GAP_RESET_MS) dwell.reset();
 
       const aim = magnet?.isConnected ? attractToTarget(raw, magnet.getBoundingClientRect()) : null;
@@ -145,8 +175,8 @@ export default defineContentScript({
       hasPosition = false;
       magnet = null;
       lastFrameMs = null;
+      setGesture(null);
       dwell.reset();
-      setProgress(0);
 
       if (visible && frameId === null) {
         frameId = requestAnimationFrame(tick);
@@ -166,15 +196,28 @@ export default defineContentScript({
 
     chrome.runtime.onMessage.addListener((message) => {
       const runtimeMessage = message as RuntimeMessage;
+
       if (runtimeMessage.type === 'DETECTION_STATE') {
         setVisible(runtimeMessage.payload.running);
       }
+
       if (runtimeMessage.type === 'CURSOR_MOVE') {
         raw = { x: runtimeMessage.payload.x * window.innerWidth, y: runtimeMessage.payload.y * window.innerHeight };
         if (!hasPosition) {
           display = raw;
           hasPosition = true;
           render(display);
+        }
+      }
+
+      if (runtimeMessage.type === 'NAVIGATION_GESTURE') {
+        const { side, progress, fired } = runtimeMessage.payload;
+        if (side !== gesture) setGesture(side);
+        if (side !== null) setProgress(progress);
+        if (fired && side !== null) {
+          flashClick();
+          if (side === 'left') window.history.back();
+          else window.history.forward();
         }
       }
     });
