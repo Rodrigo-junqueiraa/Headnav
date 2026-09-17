@@ -42,7 +42,7 @@ Work in progress. Roadmap:
 | 0 | Foundation (scaffold, build, repo) | ✅ |
 | 1 | Camera + face landmarks | ✅ |
 | 2 | Head-controlled cursor (smoothed) | ✅ |
-| 3 | Hands-free click (dwell + optional wink) | ⬜ |
+| 3 | Hands-free click (dwell with a magnet on targets) | ✅ |
 | 4 | Gesture navigation + state machine | ⬜ |
 | 5 | Calibration + configuration | ⬜ |
 | 6 | Polish (demo GIF, diagram, tests) | ⬜ |
