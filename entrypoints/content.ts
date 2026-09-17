@@ -2,6 +2,9 @@ import { findClickTarget, performClick } from '@/lib/click';
 import { DwellDetector } from '@/lib/dwell';
 import type { GestureKind, RuntimeMessage, StatusResponse } from '@/lib/messages';
 import { attractToTarget, smoothPointer, type Point } from '@/lib/pointer';
+import { EdgeScrollDetector, edgeAt, edgeDepth, findScrollable, scrollSpeed } from '@/lib/scroll';
+
+type OverlayKind = GestureKind | 'scrollUp' | 'scrollDown';
 
 export default defineContentScript({
   matches: ['http://*/*', 'https://*/*'],
@@ -20,6 +23,7 @@ export default defineContentScript({
     const DWELL_COLOR = '#f59e0b';
     const NAVIGATION_COLOR = '#38bdf8';
     const PAUSE_COLOR = '#a78bfa';
+    const SCROLL_COLOR = '#34d399';
     const FRAME_GAP_RESET_MS = 500;
     const MAGNET_MAX_AREA_RATIO = 0.25;
 
@@ -101,11 +105,13 @@ export default defineContentScript({
     cursor.append(dot, ring, badge);
 
     const dwell = new DwellDetector<Element>();
+    const edgeScroll = new EdgeScrollDetector();
     let raw: Point = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
     let display: Point = raw;
     let hasPosition = false;
     let magnet: Element | null = null;
     let gesture: GestureKind | null = null;
+    let overlay: OverlayKind | null = null;
     let clickingPaused = false;
     let lastFrameMs: number | null = null;
     let frameId: number | null = null;
@@ -120,10 +126,33 @@ export default defineContentScript({
       progressArc.setAttribute('stroke-dashoffset', offset);
     };
 
-    const gestureSymbol = (kind: GestureKind): string => {
+    const overlayColor = (kind: OverlayKind): string => {
+      if (kind === 'pause') return PAUSE_COLOR;
+      if (kind === 'scrollUp' || kind === 'scrollDown') return SCROLL_COLOR;
+      return NAVIGATION_COLOR;
+    };
+
+    const overlaySymbol = (kind: OverlayKind): string => {
       if (kind === 'back') return '←';
       if (kind === 'forward') return '→';
+      if (kind === 'scrollUp') return '↑';
+      if (kind === 'scrollDown') return '↓';
       return clickingPaused ? '▶' : '⏸';
+    };
+
+    const setOverlay = (kind: OverlayKind | null): void => {
+      overlay = kind;
+      if (kind === null) {
+        progressArc.setAttribute('stroke', DWELL_COLOR);
+        badge.textContent = '⏸';
+        badge.style.display = clickingPaused ? 'flex' : 'none';
+        setProgress(0);
+        return;
+      }
+      progressArc.setAttribute('stroke', overlayColor(kind));
+      badge.textContent = overlaySymbol(kind);
+      badge.style.display = 'flex';
+      setProgress(0);
     };
 
     const setPaused = (paused: boolean): void => {
@@ -132,27 +161,7 @@ export default defineContentScript({
       dot.style.opacity = paused ? '0.6' : '1';
       magnet = null;
       dwell.reset();
-      setProgress(0);
-      if (gesture === null) {
-        badge.textContent = '⏸';
-        badge.style.display = paused ? 'flex' : 'none';
-      }
-    };
-
-    const setGesture = (kind: GestureKind | null): void => {
-      gesture = kind;
-      if (kind === null) {
-        progressArc.setAttribute('stroke', DWELL_COLOR);
-        badge.textContent = '⏸';
-        badge.style.display = clickingPaused ? 'flex' : 'none';
-        setProgress(0);
-        return;
-      }
-      progressArc.setAttribute('stroke', kind === 'pause' ? PAUSE_COLOR : NAVIGATION_COLOR);
-      badge.textContent = gestureSymbol(kind);
-      badge.style.display = 'flex';
-      dwell.reset();
-      setProgress(0);
+      if (overlay === null) setOverlay(null);
     };
 
     const flash = (color: string): void => {
@@ -171,11 +180,48 @@ export default defineContentScript({
       return width * height <= window.innerWidth * window.innerHeight * MAGNET_MAX_AREA_RATIO;
     };
 
+    const clearEdgeOverlay = (): void => {
+      edgeScroll.reset();
+      if (overlay === 'scrollUp' || overlay === 'scrollDown') setOverlay(null);
+    };
+
+    const runEdgeScroll = (elapsedMs: number, now: number): boolean => {
+      const edge = edgeAt(raw.y, window.innerHeight);
+      if (edge === null) {
+        clearEdgeOverlay();
+        return false;
+      }
+
+      const scrollable = findScrollable(document.elementFromPoint(display.x, display.y), edge);
+      if (scrollable === null) {
+        clearEdgeOverlay();
+        return false;
+      }
+
+      magnet = null;
+      dwell.reset();
+      display = smoothPointer(display, raw, elapsedMs, false);
+      render(display);
+
+      const state = edgeScroll.update(edge, now);
+      const kind: OverlayKind = edge === 'up' ? 'scrollUp' : 'scrollDown';
+      if (overlay !== kind) setOverlay(kind);
+      setProgress(state.progress);
+
+      if (state.scrolling) {
+        const distance = (scrollSpeed(edgeDepth(raw.y, window.innerHeight)) * elapsedMs) / 1000;
+        scrollable.scrollBy(0, edge === 'up' ? -distance : distance);
+      }
+
+      return true;
+    };
+
     const tick = (now: number): void => {
       frameId = requestAnimationFrame(tick);
       const elapsedMs = lastFrameMs === null ? 0 : now - lastFrameMs;
       lastFrameMs = now;
       if (!hasPosition || gesture !== null) return;
+      if (runEdgeScroll(elapsedMs, now)) return;
 
       if (clickingPaused) {
         magnet = null;
@@ -211,8 +257,10 @@ export default defineContentScript({
       hasPosition = false;
       magnet = null;
       lastFrameMs = null;
-      setGesture(null);
+      gesture = null;
+      edgeScroll.reset();
       setPaused(false);
+      setOverlay(null);
 
       if (visible && frameId === null) {
         frameId = requestAnimationFrame(tick);
@@ -252,8 +300,15 @@ export default defineContentScript({
 
       if (runtimeMessage.type === 'GESTURE_HOLD') {
         const { kind, progress, fired } = runtimeMessage.payload;
-        if (kind !== gesture) setGesture(kind);
-        if (kind !== null) setProgress(progress);
+        gesture = kind;
+        if (kind !== null) {
+          edgeScroll.reset();
+          dwell.reset();
+          if (overlay !== kind) setOverlay(kind);
+          setProgress(progress);
+        } else if (overlay !== null) {
+          setOverlay(null);
+        }
         if (fired && kind !== null) {
           flash(kind === 'pause' ? PAUSE_COLOR : NAVIGATION_COLOR);
           if (kind === 'back') window.history.back();
