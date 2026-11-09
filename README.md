@@ -43,9 +43,10 @@ Work in progress. Roadmap:
 | 1 | Camera + face landmarks | ✅ |
 | 2 | Head-controlled cursor (smoothed) | ✅ |
 | 3 | Hands-free click (dwell with a magnet on targets) | ✅ |
-| 4 | Gesture navigation + state machine | ⬜ |
-| 5 | Calibration + configuration | ⬜ |
-| 6 | Polish (demo GIF, diagram, tests) | ⬜ |
+| 4 | Gesture navigation (eye hold for back/forward, mouth hold to pause, edge scroll) | ✅ |
+| 5 | Voice dictation into text fields (optional) | ⬜ |
+| 6 | Calibration + configuration | ⬜ |
+| 7 | Polish (demo GIF, diagram, tests) | ⬜ |
 
 ## Development
 
