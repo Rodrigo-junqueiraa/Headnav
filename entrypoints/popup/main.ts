@@ -1,4 +1,11 @@
-import type { DetectionStatus, RuntimeMessage, StatusResponse } from '@/lib/messages';
+import type {
+  DetectionStatus,
+  ForwardResponse,
+  RuntimeMessage,
+  SpeechErrorCode,
+  SpeechPhase,
+  StatusResponse,
+} from '@/lib/messages';
 
 const dot = document.querySelector<HTMLSpanElement>('#dot');
 const toggleButton = document.querySelector<HTMLButtonElement>('#toggle');
@@ -12,13 +19,32 @@ const yawEl = document.querySelector<HTMLSpanElement>('#yaw');
 const pitchEl = document.querySelector<HTMLSpanElement>('#pitch');
 const rollEl = document.querySelector<HTMLSpanElement>('#roll');
 
+const voiceButton = document.querySelector<HTMLButtonElement>('#voiceTest');
+const voiceStatusEl = document.querySelector<HTMLSpanElement>('#voiceStatus');
+const transcriptEl = document.querySelector<HTMLDivElement>('#transcript');
+
+const PHASE_TEXT: Record<SpeechPhase, string> = {
+  listening: 'listening',
+  sound: 'sound detected',
+  speech: 'speech detected',
+  ended: 'ended',
+};
+
+const MICROPHONE_BLOCKED: SpeechErrorCode[] = ['not-allowed', 'service-not-allowed', 'audio-capture'];
+
 let running = false;
+let voiceActive = false;
+let voiceFailed = false;
 
 function setRunning(value: boolean): void {
   running = value;
   if (toggleButton) toggleButton.textContent = value ? 'Stop' : 'Start';
   dot?.classList.toggle('on', value);
-  if (!value) resetReadouts();
+  if (voiceButton) voiceButton.disabled = !value;
+  if (!value) {
+    resetReadouts();
+    resetVoice();
+  }
 }
 
 function setBar(id: string, value: number): void {
@@ -52,7 +78,44 @@ function renderStatus(status: DetectionStatus): void {
 function showError(message: string): void {
   if (errorEl) errorEl.textContent = message;
   if (hintEl) {
-    hintEl.textContent = 'If the camera is blocked, click "Camera access" and allow it, then start again.';
+    hintEl.textContent = 'If the camera is blocked, click "Setup" and allow it, then start again.';
+  }
+}
+
+function setVoiceStatus(text: string): void {
+  if (voiceStatusEl) voiceStatusEl.textContent = text;
+}
+
+function setVoiceActive(value: boolean): void {
+  voiceActive = value;
+  if (voiceButton) voiceButton.textContent = value ? 'Stop voice test' : 'Test voice';
+}
+
+function resetVoice(): void {
+  setVoiceActive(false);
+  voiceFailed = false;
+  setVoiceStatus('—');
+  if (transcriptEl) transcriptEl.textContent = '';
+}
+
+function renderSpeechPhase(phase: SpeechPhase, lang: string): void {
+  setVoiceActive(phase !== 'ended');
+  if (phase === 'ended' && voiceFailed) return;
+  setVoiceStatus(phase === 'listening' ? `${PHASE_TEXT[phase]} (${lang})` : PHASE_TEXT[phase]);
+}
+
+function renderTranscript(text: string, isFinal: boolean): void {
+  if (!transcriptEl) return;
+  transcriptEl.textContent = text;
+  transcriptEl.classList.toggle('interim', !isFinal);
+}
+
+function showSpeechError(code: SpeechErrorCode): void {
+  voiceFailed = true;
+  setVoiceActive(false);
+  setVoiceStatus(`error: ${code}`);
+  if (hintEl && MICROPHONE_BLOCKED.includes(code)) {
+    hintEl.textContent = 'If the microphone is blocked, click "Setup" and allow it, then test again.';
   }
 }
 
@@ -67,6 +130,22 @@ grantButton?.addEventListener('click', () => {
   void chrome.tabs.create({ url: chrome.runtime.getURL('setup.html') });
 });
 
+voiceButton?.addEventListener('click', () => {
+  const type: RuntimeMessage['type'] = voiceActive ? 'VOICE_TEST_STOP' : 'VOICE_TEST_START';
+  if (!voiceActive) {
+    voiceFailed = false;
+    renderTranscript('', true);
+    setVoiceStatus('starting…');
+    if (hintEl) hintEl.textContent = '';
+  }
+  chrome.runtime
+    .sendMessage({ type })
+    .then((response: ForwardResponse | undefined) => {
+      if (!response?.ok) setVoiceStatus('unavailable, start HeadNav and try again');
+    })
+    .catch(() => {});
+});
+
 chrome.runtime.onMessage.addListener((message) => {
   const runtimeMessage = message as RuntimeMessage;
   if (runtimeMessage.type === 'DETECTION_STATUS') {
@@ -74,6 +153,12 @@ chrome.runtime.onMessage.addListener((message) => {
     renderStatus(runtimeMessage.payload);
   } else if (runtimeMessage.type === 'DETECTION_ERROR') {
     showError(runtimeMessage.payload.message);
+  } else if (runtimeMessage.type === 'SPEECH_STATUS') {
+    renderSpeechPhase(runtimeMessage.payload.phase, runtimeMessage.payload.lang);
+  } else if (runtimeMessage.type === 'SPEECH_RESULT') {
+    renderTranscript(runtimeMessage.payload.text, runtimeMessage.payload.isFinal);
+  } else if (runtimeMessage.type === 'SPEECH_ERROR') {
+    showSpeechError(runtimeMessage.payload.code);
   }
 });
 

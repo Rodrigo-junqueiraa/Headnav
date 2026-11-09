@@ -3,13 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>HeadNav — Camera access</title>
+    <title>HeadNav — Setup</title>
     <style>
       :root {
         color-scheme: light dark;
         --bg: #ffffff;
         --fg: #1a1a1a;
         --muted: #666;
+        --line: #e5e7eb;
         --accent: #2563eb;
         --ok: #16a34a;
         --error: #dc2626;
@@ -19,6 +20,7 @@
           --bg: #16181d;
           --fg: #f2f3f5;
           --muted: #9aa0a6;
+          --line: #2a2d34;
         }
       }
       * { box-sizing: border-box; }
@@ -35,9 +37,12 @@
       }
       main { max-width: 460px; text-align: center; }
       h1 { font-size: 1.4rem; margin: 0 0 8px; }
+      h2 { font-size: 1.1rem; margin: 0 0 4px; }
       p { color: var(--muted); line-height: 1.5; }
+      section { border-top: 1px solid var(--line); padding: 20px 0; }
+      .optional { color: var(--muted); font-weight: 400; }
       button {
-        margin-top: 16px;
+        margin-top: 8px;
         padding: 12px 22px;
         font-size: 1rem;
         border: none;
@@ -47,20 +52,33 @@
         cursor: pointer;
       }
       button:hover { filter: brightness(1.05); }
-      #status { margin-top: 18px; font-weight: 600; min-height: 1.4em; }
-      #status.ok { color: var(--ok); }
-      #status.error { color: var(--error); }
+      .status { margin-top: 14px; font-weight: 600; min-height: 1.4em; }
+      .status.ok { color: var(--ok); }
+      .status.error { color: var(--error); }
     </style>
   </head>
   <body>
     <main>
-      <h1>Allow camera access</h1>
-      <p>
-        HeadNav needs your camera to read head and eye movements. All processing happens
-        locally in your browser &mdash; no video ever leaves your machine.
-      </p>
-      <button id="grant" type="button">Allow camera</button>
-      <div id="status"></div>
+      <h1>Set up HeadNav</h1>
+      <p>Someone can help with this page once. After that, HeadNav is used hands-free.</p>
+      <section>
+        <h2>Camera</h2>
+        <p>
+          HeadNav needs your camera to read head and eye movements. All processing happens
+          locally in your browser &mdash; no video ever leaves your machine.
+        </p>
+        <button id="grantCamera" type="button">Allow camera</button>
+        <div id="cameraStatus" class="status"></div>
+      </section>
+      <section>
+        <h2>Microphone <span class="optional">(optional)</span></h2>
+        <p>
+          Used only for voice dictation, and only while you dictate. Chrome sends the audio
+          to Google to turn it into text.
+        </p>
+        <button id="grantMicrophone" type="button">Allow microphone</button>
+        <div id="microphoneStatus" class="status"></div>
+      </section>
     </main>
     <script type="module" src="./main.ts"></script>
   </body>
