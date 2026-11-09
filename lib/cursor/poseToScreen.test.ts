@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mapPoseToNormalized, DEFAULT_CURSOR_OPTIONS } from './cursor';
+import { mapPoseToNormalized, DEFAULT_CURSOR_OPTIONS } from './poseToScreen';
 
 describe('mapPoseToNormalized', () => {
   it('centers on a neutral pose', () => {

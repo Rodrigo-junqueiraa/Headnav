@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { DwellDetector } from './dwell';
+import { DwellDetector } from './dwellDetector';
 
 const config = { dwellMs: 1000, graceMs: 200, rearmDistancePx: 20 };
 const idle = { progress: 0, fired: false };

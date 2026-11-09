@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { WinkHoldDetector, detectWinkSide } from './wink';
+import { WinkHoldDetector, detectWinkSide } from './winkHold';
 
 const config = {
   holdMs: 1000,

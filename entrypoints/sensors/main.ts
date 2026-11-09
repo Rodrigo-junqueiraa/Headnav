@@ -1,6 +1,6 @@
 import { FaceLandmarker, FilesetResolver } from '@mediapipe/tasks-vision';
 import type { FaceLandmarkerResult } from '@mediapipe/tasks-vision';
-import { matrixToEuler } from '@/lib/pose';
+import { matrixToEuler } from '@/lib/tracking/headPose';
 import type { DetectionStatus, RuntimeMessage } from '@/lib/messages';
 
 function broadcast(message: RuntimeMessage): void {

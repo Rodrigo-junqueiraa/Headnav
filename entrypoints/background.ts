@@ -1,10 +1,10 @@
-import { mapPoseToNormalized } from '@/lib/cursor';
-import { OneEuroFilter } from '@/lib/filter';
-import { JawHoldDetector } from '@/lib/jaw';
+import { OneEuroFilter } from '@/lib/cursor/oneEuroFilter';
+import { mapPoseToNormalized } from '@/lib/cursor/poseToScreen';
+import { JawHoldDetector } from '@/lib/gestures/jawHold';
+import { WinkHoldDetector } from '@/lib/gestures/winkHold';
 import type { DetectionStatus, GestureKind, RuntimeMessage } from '@/lib/messages';
-import { WinkHoldDetector } from '@/lib/wink';
 
-const OFFSCREEN_URL = 'offscreen.html';
+const OFFSCREEN_URL = 'sensors.html';
 const CURSOR_FILTER_CONFIG = { minCutoff: 0.5, beta: 0.6 };
 const cursorFilterX = new OneEuroFilter(CURSOR_FILTER_CONFIG);
 const cursorFilterY = new OneEuroFilter(CURSOR_FILTER_CONFIG);

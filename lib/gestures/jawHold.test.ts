@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { JawHoldDetector } from './jaw';
+import { JawHoldDetector } from './jawHold';
 
 const config = { holdMs: 1000, openThreshold: 0.35, keepThreshold: 0.2, flickerMs: 400 };
 

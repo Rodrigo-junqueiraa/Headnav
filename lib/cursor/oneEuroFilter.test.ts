@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { OneEuroFilter } from './filter';
+import { OneEuroFilter } from './oneEuroFilter';
 
 function feed(filter: OneEuroFilter, values: number[], stepMs = 50): number[] {
   return values.map((value, index) => filter.filter(value, index * stepMs));

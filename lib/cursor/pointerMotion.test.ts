@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { attractToTarget, smoothPointer } from './pointer';
+import { attractToTarget, smoothPointer } from './pointerMotion';
 
 const smoothing = { freeTauMs: 40, precisionTauMs: 200, escapeRadiusPx: 60 };
 const origin = { x: 100, y: 100 };

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { EdgeScrollDetector, edgeAt, edgeDepth, scrollSpeed } from './scroll';
+import { EdgeScrollDetector, edgeAt, edgeDepth, scrollSpeed } from './edgeScroll';
 
 const config = { bandPx: 50, armMs: 2000, minSpeedPxPerSec: 250, maxSpeedPxPerSec: 1300 };
 const viewport = 800;

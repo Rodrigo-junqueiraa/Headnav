@@ -1,8 +1,8 @@
-import { findClickTarget, performClick } from '@/lib/click';
-import { DwellDetector } from '@/lib/dwell';
+import { findClickTarget, performClick } from '@/lib/click/clickTarget';
+import { DwellDetector } from '@/lib/click/dwellDetector';
+import { attractToTarget, smoothPointer, type Point } from '@/lib/cursor/pointerMotion';
+import { EdgeScrollDetector, edgeAt, edgeDepth, findScrollable, scrollSpeed } from '@/lib/gestures/edgeScroll';
 import type { GestureKind, RuntimeMessage, StatusResponse } from '@/lib/messages';
-import { attractToTarget, smoothPointer, type Point } from '@/lib/pointer';
-import { EdgeScrollDetector, edgeAt, edgeDepth, findScrollable, scrollSpeed } from '@/lib/scroll';
 
 type OverlayKind = GestureKind | 'scrollUp' | 'scrollDown';
 

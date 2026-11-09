@@ -64,7 +64,7 @@ toggleButton?.addEventListener('click', () => {
 });
 
 grantButton?.addEventListener('click', () => {
-  void chrome.tabs.create({ url: chrome.runtime.getURL('permission.html') });
+  void chrome.tabs.create({ url: chrome.runtime.getURL('setup.html') });
 });
 
 chrome.runtime.onMessage.addListener((message) => {
