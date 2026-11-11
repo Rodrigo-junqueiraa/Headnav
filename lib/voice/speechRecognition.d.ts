@@ -12,11 +12,19 @@ interface SpeechRecognitionEventMap {
   start: Event;
 }
 
+type SpeechRecognitionAvailabilityStatus = 'unavailable' | 'downloadable' | 'downloading' | 'available';
+
+type SpeechRecognitionOptions = {
+  langs: string[];
+  processLocally?: boolean;
+};
+
 interface SpeechRecognition extends EventTarget {
   lang: string;
   continuous: boolean;
   interimResults: boolean;
   maxAlternatives: number;
+  processLocally: boolean;
   start(): void;
   stop(): void;
   abort(): void;
@@ -35,6 +43,8 @@ interface SpeechRecognition extends EventTarget {
 type SpeechRecognitionConstructor = {
   prototype: SpeechRecognition;
   new (): SpeechRecognition;
+  available?(options: SpeechRecognitionOptions): Promise<SpeechRecognitionAvailabilityStatus>;
+  install?(options: SpeechRecognitionOptions): Promise<boolean>;
 };
 
 declare var SpeechRecognition: SpeechRecognitionConstructor | undefined;

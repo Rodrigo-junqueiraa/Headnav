@@ -6,6 +6,7 @@ import type {
   SpeechPhase,
   StatusResponse,
 } from '@/lib/messages';
+import type { SpeechMode } from '@/lib/voice/speechMode';
 
 const dot = document.querySelector<HTMLSpanElement>('#dot');
 const toggleButton = document.querySelector<HTMLButtonElement>('#toggle');
@@ -98,10 +99,10 @@ function resetVoice(): void {
   if (transcriptEl) transcriptEl.textContent = '';
 }
 
-function renderSpeechPhase(phase: SpeechPhase, lang: string): void {
+function renderSpeechPhase(phase: SpeechPhase, lang: string, mode: SpeechMode): void {
   setVoiceActive(phase !== 'ended');
   if (phase === 'ended' && voiceFailed) return;
-  setVoiceStatus(phase === 'listening' ? `${PHASE_TEXT[phase]} (${lang})` : PHASE_TEXT[phase]);
+  setVoiceStatus(phase === 'listening' ? `${PHASE_TEXT[phase]} (${lang}, ${mode})` : PHASE_TEXT[phase]);
 }
 
 function renderTranscript(text: string, isFinal: boolean): void {
@@ -116,6 +117,8 @@ function showSpeechError(code: SpeechErrorCode): void {
   setVoiceStatus(`error: ${code}`);
   if (hintEl && MICROPHONE_BLOCKED.includes(code)) {
     hintEl.textContent = 'If the microphone is blocked, click "Setup" and allow it, then test again.';
+  } else if (hintEl && code === 'localUnavailable') {
+    hintEl.textContent = 'Local voice is not installed. Click "Setup" to install it or to choose online.';
   }
 }
 
@@ -154,7 +157,7 @@ chrome.runtime.onMessage.addListener((message) => {
   } else if (runtimeMessage.type === 'DETECTION_ERROR') {
     showError(runtimeMessage.payload.message);
   } else if (runtimeMessage.type === 'SPEECH_STATUS') {
-    renderSpeechPhase(runtimeMessage.payload.phase, runtimeMessage.payload.lang);
+    renderSpeechPhase(runtimeMessage.payload.phase, runtimeMessage.payload.lang, runtimeMessage.payload.mode);
   } else if (runtimeMessage.type === 'SPEECH_RESULT') {
     renderTranscript(runtimeMessage.payload.text, runtimeMessage.payload.isFinal);
   } else if (runtimeMessage.type === 'SPEECH_ERROR') {

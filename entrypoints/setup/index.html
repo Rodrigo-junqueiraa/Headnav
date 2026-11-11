@@ -52,6 +52,24 @@
         cursor: pointer;
       }
       button:hover { filter: brightness(1.05); }
+      button:disabled { opacity: 0.5; cursor: default; filter: none; }
+      h3 { font-size: 1rem; margin: 24px 0 10px; }
+      .modes { display: grid; gap: 10px; text-align: left; }
+      .mode {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        column-gap: 10px;
+        row-gap: 4px;
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        cursor: pointer;
+      }
+      .mode:has(input:checked) { border-color: var(--accent); }
+      .mode input { grid-row: span 2; margin-top: 3px; }
+      .modeTitle { font-weight: 600; }
+      .modeText { color: var(--muted); font-size: 0.9rem; line-height: 1.45; }
+      .badge { margin-left: 6px; font-size: 0.75rem; color: var(--accent); }
       .status { margin-top: 14px; font-weight: 600; min-height: 1.4em; }
       .status.ok { color: var(--ok); }
       .status.error { color: var(--error); }
@@ -72,12 +90,33 @@
       </section>
       <section>
         <h2>Microphone <span class="optional">(optional)</span></h2>
-        <p>
-          Used only for voice dictation, and only while you dictate. Chrome sends the audio
-          to Google to turn it into text.
-        </p>
+        <p>Used only for voice dictation, and only while you dictate.</p>
         <button id="grantMicrophone" type="button">Allow microphone</button>
         <div id="microphoneStatus" class="status"></div>
+
+        <h3>Voice recognition</h3>
+        <div class="modes">
+          <label class="mode">
+            <input type="radio" name="speechMode" value="online" />
+            <span class="modeTitle">Online <span class="badge">recommended</span></span>
+            <span class="modeText">
+              Usually more accurate, works in more languages, needs no download and works on
+              any computer with Chrome. Needs internet, and Chrome sends your audio to Google to
+              turn it into text.
+            </span>
+          </label>
+          <label class="mode">
+            <input type="radio" name="speechMode" value="local" />
+            <span class="modeTitle">Local</span>
+            <span class="modeText">
+              Your audio never leaves this computer, even without internet. Needs a one-time
+              download of the language package, may be less accurate, uses this computer's
+              processor and only works in recent Chrome versions and some languages.
+            </span>
+          </label>
+        </div>
+        <div id="localVoiceStatus" class="status"></div>
+        <button id="installLocalVoice" type="button" disabled>Install local voice</button>
       </section>
     </main>
     <script type="module" src="./main.ts"></script>

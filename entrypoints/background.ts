@@ -3,6 +3,7 @@ import { mapPoseToNormalized } from '@/lib/cursor/poseToScreen';
 import { JawHoldDetector } from '@/lib/gestures/jawHold';
 import { WinkHoldDetector } from '@/lib/gestures/winkHold';
 import type { DetectionStatus, ForwardResponse, GestureKind, RuntimeMessage } from '@/lib/messages';
+import { loadSpeechMode } from '@/lib/voice/speechMode';
 
 const OFFSCREEN_URL = 'sensors.html';
 const CURSOR_FILTER_CONFIG = { minCutoff: 0.5, beta: 0.6 };
@@ -133,7 +134,8 @@ export default defineBackground(() => {
         handleDetectionStatus(runtimeMessage.payload);
         return false;
       case 'VOICE_TEST_START':
-        forwardToSensors({ type: 'SPEECH_START' })
+        loadSpeechMode()
+          .then((mode) => forwardToSensors({ type: 'SPEECH_START', payload: { mode } }))
           .then(sendResponse)
           .catch(() => sendResponse({ ok: false }));
         return true;

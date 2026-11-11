@@ -177,7 +177,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   const runtimeMessage = message as RuntimeMessage;
 
   if (runtimeMessage.type === 'SPEECH_START') {
-    startSpeech();
+    void startSpeech(runtimeMessage.payload.mode);
     sendResponse({ ok: true });
   } else if (runtimeMessage.type === 'SPEECH_STOP') {
     stopSpeech();

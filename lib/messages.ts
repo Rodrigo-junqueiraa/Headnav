@@ -1,3 +1,5 @@
+import type { SpeechMode } from '@/lib/voice/speechMode';
+
 export type DetectionStatus = {
   running: boolean;
   faceDetected: boolean;
@@ -15,7 +17,7 @@ export type GestureKind = 'back' | 'forward' | 'pause';
 
 export type SpeechPhase = 'listening' | 'sound' | 'speech' | 'ended';
 
-export type SpeechErrorCode = SpeechRecognitionErrorCode | 'unsupported' | 'startFailed';
+export type SpeechErrorCode = SpeechRecognitionErrorCode | 'unsupported' | 'startFailed' | 'localUnavailable';
 
 export type RuntimeMessage =
   | { type: 'START_DETECTION' }
@@ -29,9 +31,9 @@ export type RuntimeMessage =
   | { type: 'DETECTION_ERROR'; payload: { message: string } }
   | { type: 'VOICE_TEST_START' }
   | { type: 'VOICE_TEST_STOP' }
-  | { type: 'SPEECH_START' }
+  | { type: 'SPEECH_START'; payload: { mode: SpeechMode } }
   | { type: 'SPEECH_STOP' }
-  | { type: 'SPEECH_STATUS'; payload: { phase: SpeechPhase; lang: string } }
+  | { type: 'SPEECH_STATUS'; payload: { phase: SpeechPhase; lang: string; mode: SpeechMode } }
   | { type: 'SPEECH_RESULT'; payload: { text: string; isFinal: boolean } }
   | { type: 'SPEECH_ERROR'; payload: { code: SpeechErrorCode } };
 
