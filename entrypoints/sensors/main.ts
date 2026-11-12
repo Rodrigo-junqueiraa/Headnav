@@ -2,7 +2,7 @@ import { FaceLandmarker, FilesetResolver } from '@mediapipe/tasks-vision';
 import type { FaceLandmarkerResult } from '@mediapipe/tasks-vision';
 import { matrixToEuler } from '@/lib/tracking/headPose';
 import type { DetectionStatus, RuntimeMessage } from '@/lib/messages';
-import { startSpeech, stopSpeech } from './speech';
+import { abortSpeech, startSpeech, stopSpeech } from './speech';
 
 function broadcast(message: RuntimeMessage): void {
   chrome.runtime.sendMessage(message).catch(() => {});
@@ -177,10 +177,13 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   const runtimeMessage = message as RuntimeMessage;
 
   if (runtimeMessage.type === 'SPEECH_START') {
-    void startSpeech(runtimeMessage.payload.mode);
+    void startSpeech(runtimeMessage.payload.mode, runtimeMessage.payload.sessionId);
     sendResponse({ ok: true });
   } else if (runtimeMessage.type === 'SPEECH_STOP') {
     stopSpeech();
+    sendResponse({ ok: true });
+  } else if (runtimeMessage.type === 'SPEECH_ABORT') {
+    abortSpeech();
     sendResponse({ ok: true });
   }
 

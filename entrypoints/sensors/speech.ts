@@ -5,19 +5,18 @@ import type { SpeechMode } from '@/lib/voice/speechMode';
 const MAX_LISTENING_MS = 15000;
 
 let recognition: SpeechRecognition | null = null;
-let listeningLimit: ReturnType<typeof setTimeout> | undefined;
 let requestId = 0;
 
 function send(message: RuntimeMessage): void {
   chrome.runtime.sendMessage(message).catch(() => {});
 }
 
-function sendPhase(phase: SpeechPhase, mode: SpeechMode): void {
-  send({ type: 'SPEECH_STATUS', payload: { phase, lang: navigator.language, mode } });
+function sendPhase(phase: SpeechPhase, mode: SpeechMode, sessionId: string): void {
+  send({ type: 'SPEECH_STATUS', payload: { phase, lang: navigator.language, mode, sessionId } });
 }
 
-function sendError(code: SpeechErrorCode): void {
-  send({ type: 'SPEECH_ERROR', payload: { code } });
+function sendError(code: SpeechErrorCode, sessionId: string): void {
+  send({ type: 'SPEECH_ERROR', payload: { code, sessionId } });
 }
 
 function readTranscript(event: SpeechRecognitionEvent): { text: string; isFinal: boolean } {
@@ -30,7 +29,11 @@ function readTranscript(event: SpeechRecognitionEvent): { text: string; isFinal:
   return { text: text.trim(), isFinal };
 }
 
-function createRecognition(Recognition: SpeechRecognitionConstructor, mode: SpeechMode): SpeechRecognition {
+function createRecognition(
+  Recognition: SpeechRecognitionConstructor,
+  mode: SpeechMode,
+  sessionId: string,
+): SpeechRecognition {
   const instance = new Recognition();
   instance.lang = navigator.language;
   instance.continuous = false;
@@ -38,52 +41,57 @@ function createRecognition(Recognition: SpeechRecognitionConstructor, mode: Spee
   instance.maxAlternatives = 1;
   if (mode === 'local') instance.processLocally = true;
 
-  instance.addEventListener('audiostart', () => sendPhase('listening', mode));
-  instance.addEventListener('soundstart', () => sendPhase('sound', mode));
-  instance.addEventListener('speechstart', () => sendPhase('speech', mode));
+  instance.addEventListener('audiostart', () => sendPhase('listening', mode, sessionId));
+  instance.addEventListener('soundstart', () => sendPhase('sound', mode, sessionId));
+  instance.addEventListener('speechstart', () => sendPhase('speech', mode, sessionId));
   instance.addEventListener('result', (event) => {
-    send({ type: 'SPEECH_RESULT', payload: readTranscript(event) });
+    send({ type: 'SPEECH_RESULT', payload: { ...readTranscript(event), sessionId } });
   });
-  instance.addEventListener('error', (event) => sendError(event.error));
+  instance.addEventListener('error', (event) => sendError(event.error, sessionId));
   instance.addEventListener('end', () => {
-    clearTimeout(listeningLimit);
     if (recognition === instance) recognition = null;
-    sendPhase('ended', mode);
+    sendPhase('ended', mode, sessionId);
   });
 
   return instance;
 }
 
-export async function startSpeech(mode: SpeechMode): Promise<void> {
-  if (recognition) return;
+export async function startSpeech(mode: SpeechMode, sessionId: string): Promise<void> {
+  if (recognition) recognition.abort();
   const request = ++requestId;
 
   const Recognition = getRecognitionConstructor();
   if (!Recognition) {
-    sendError('unsupported');
+    sendError('unsupported', sessionId);
     return;
   }
 
   if (mode === 'local' && (await checkLocalVoice(navigator.language)) !== 'available') {
-    if (request === requestId) sendError('localUnavailable');
+    if (request === requestId) sendError('localUnavailable', sessionId);
     return;
   }
 
-  if (request !== requestId || recognition) return;
+  if (request !== requestId) return;
 
-  const instance = createRecognition(Recognition, mode);
+  const instance = createRecognition(Recognition, mode, sessionId);
   try {
     instance.start();
   } catch {
-    sendError('startFailed');
+    sendError('startFailed', sessionId);
     return;
   }
 
   recognition = instance;
-  listeningLimit = setTimeout(() => instance.stop(), MAX_LISTENING_MS);
+  const listeningLimit = setTimeout(() => instance.stop(), MAX_LISTENING_MS);
+  instance.addEventListener('end', () => clearTimeout(listeningLimit));
 }
 
 export function stopSpeech(): void {
   requestId += 1;
   recognition?.stop();
+}
+
+export function abortSpeech(): void {
+  requestId += 1;
+  recognition?.abort();
 }

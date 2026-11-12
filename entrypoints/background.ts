@@ -5,7 +5,9 @@ import { WinkHoldDetector } from '@/lib/gestures/winkHold';
 import type { DetectionStatus, ForwardResponse, GestureKind, RuntimeMessage, StatusResponse } from '@/lib/messages';
 import { FacePresenceTracker } from '@/lib/tracking/facePresence';
 import { SpeechGestureGuard } from '@/lib/voice/speechGestureGuard';
-import { loadSpeechMode } from '@/lib/voice/speechMode';
+import { DEFAULT_SPEECH_MODE, loadSpeechMode, type SpeechMode } from '@/lib/voice/speechMode';
+
+type DictationSession = { id: string; tabId: number | null };
 
 const OFFSCREEN_URL = 'sensors.html';
 const CURSOR_FILTER_CONFIG = { minCutoff: 0.5, beta: 0.6 };
@@ -19,6 +21,7 @@ let gestureActive = false;
 let clickingPaused = false;
 let voiceActive = false;
 let facePresent = true;
+let session: DictationSession | null = null;
 
 async function hasOffscreenDocument(): Promise<boolean> {
   const contexts = await chrome.runtime.getContexts({
@@ -46,6 +49,39 @@ async function forwardToSensors(message: RuntimeMessage): Promise<ForwardRespons
   if (!(await hasOffscreenDocument())) return { ok: false };
   const response = (await chrome.runtime.sendMessage(message).catch(() => undefined)) as ForwardResponse | undefined;
   return { ok: Boolean(response?.ok) };
+}
+
+function currentSpeechMode(): Promise<SpeechMode> {
+  return loadSpeechMode().catch(() => DEFAULT_SPEECH_MODE);
+}
+
+function newSessionId(): string {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+}
+
+async function startSession(sessionId: string, tabId: number | null): Promise<ForwardResponse> {
+  const mode = await currentSpeechMode();
+  session = { id: sessionId, tabId };
+  const response = await forwardToSensors({ type: 'SPEECH_START', payload: { mode, sessionId } });
+  if (!response.ok && session?.id === sessionId) session = null;
+  return response;
+}
+
+async function stopSession(sessionId: string | null): Promise<ForwardResponse> {
+  if (sessionId !== null && session?.id !== sessionId) return { ok: false };
+  return forwardToSensors({ type: 'SPEECH_STOP' });
+}
+
+async function abortSession(sessionId: string | null): Promise<ForwardResponse> {
+  if (sessionId !== null && session?.id !== sessionId) return { ok: false };
+  session = null;
+  return forwardToSensors({ type: 'SPEECH_ABORT' });
+}
+
+function relaySpeechEvent(message: RuntimeMessage, sessionId: string, finished: boolean): void {
+  if (session?.id !== sessionId) return;
+  if (session.tabId !== null) chrome.tabs.sendMessage(session.tabId, message).catch(() => {});
+  if (finished) session = null;
 }
 
 function sendGestureHold(kind: GestureKind | null, progress: number, fired: boolean): void {
@@ -145,6 +181,7 @@ async function startDetection(): Promise<void> {
 }
 
 async function stopDetection(): Promise<void> {
+  if (session) await abortSession(null);
   if (await hasOffscreenDocument()) {
     await chrome.offscreen.closeDocument();
   }
@@ -160,7 +197,7 @@ async function stopDetection(): Promise<void> {
 }
 
 export default defineBackground(() => {
-  chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const runtimeMessage = message as RuntimeMessage;
 
     switch (runtimeMessage.type) {
@@ -175,8 +212,8 @@ export default defineBackground(() => {
           .catch((error: unknown) => sendResponse({ ok: false, error: String(error) }));
         return true;
       case 'QUERY_STATUS':
-        hasOffscreenDocument().then((running) => {
-          const status: StatusResponse = { running, clickingPaused, voiceActive, facePresent };
+        Promise.all([hasOffscreenDocument(), currentSpeechMode()]).then(([running, speechMode]) => {
+          const status: StatusResponse = { running, clickingPaused, voiceActive, facePresent, speechMode };
           sendResponse(status);
         });
         return true;
@@ -184,22 +221,43 @@ export default defineBackground(() => {
         handleDetectionStatus(runtimeMessage.payload);
         return false;
       case 'VOICE_TEST_START':
-        loadSpeechMode()
-          .then((mode) => forwardToSensors({ type: 'SPEECH_START', payload: { mode } }))
+        startSession(newSessionId(), null)
           .then(sendResponse)
           .catch(() => sendResponse({ ok: false }));
         return true;
       case 'VOICE_TEST_STOP':
-        forwardToSensors({ type: 'SPEECH_STOP' })
+        stopSession(null)
           .then(sendResponse)
           .catch(() => sendResponse({ ok: false }));
         return true;
-      case 'SPEECH_STATUS':
-        if (runtimeMessage.payload.phase === 'ended') speechGuard.end(Date.now());
+      case 'DICTATION_START':
+        startSession(runtimeMessage.payload.sessionId, sender.tab?.id ?? null)
+          .then(sendResponse)
+          .catch(() => sendResponse({ ok: false }));
+        return true;
+      case 'DICTATION_STOP':
+        stopSession(runtimeMessage.payload.sessionId)
+          .then(sendResponse)
+          .catch(() => sendResponse({ ok: false }));
+        return true;
+      case 'DICTATION_ABORT':
+        abortSession(runtimeMessage.payload.sessionId)
+          .then(sendResponse)
+          .catch(() => sendResponse({ ok: false }));
+        return true;
+      case 'SPEECH_STATUS': {
+        const ended = runtimeMessage.payload.phase === 'ended';
+        if (ended) speechGuard.end(Date.now());
         else speechGuard.start(Date.now());
+        relaySpeechEvent(runtimeMessage, runtimeMessage.payload.sessionId, ended);
+        return false;
+      }
+      case 'SPEECH_RESULT':
+        relaySpeechEvent(runtimeMessage, runtimeMessage.payload.sessionId, false);
         return false;
       case 'SPEECH_ERROR':
         speechGuard.end(Date.now());
+        relaySpeechEvent(runtimeMessage, runtimeMessage.payload.sessionId, true);
         return false;
       default:
         return false;

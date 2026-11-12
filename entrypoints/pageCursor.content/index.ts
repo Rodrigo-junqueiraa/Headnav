@@ -1,8 +1,18 @@
-import { findClickTarget, performClick } from '@/lib/click/clickTarget';
+import { findClickTarget, performClick, type ClickTarget } from '@/lib/click/clickTarget';
 import { DwellDetector } from '@/lib/click/dwellDetector';
 import { attractToTarget, smoothPointer, type Point } from '@/lib/cursor/pointerMotion';
 import { EdgeScrollDetector, edgeAt, edgeDepth, findScrollable, scrollSpeed } from '@/lib/gestures/edgeScroll';
-import type { GestureKind, RuntimeMessage, StatusResponse } from '@/lib/messages';
+import type { ForwardResponse, GestureKind, RuntimeMessage, StatusResponse } from '@/lib/messages';
+import {
+  CLOSED_DICTATION,
+  advanceDictation,
+  type DictationEffect,
+  type DictationEvent,
+  type DictationState,
+} from '@/lib/voice/dictationFlow';
+import { DEFAULT_SPEECH_MODE, type SpeechMode } from '@/lib/voice/speechMode';
+import { findTextField } from '@/lib/voice/textField';
+import { DictationPanel, type PanelAction, type PanelPlacement } from './dictationPanel';
 
 type OverlayKind = GestureKind | 'scrollUp' | 'scrollDown';
 
@@ -119,6 +129,13 @@ export default defineContentScript({
     let faceLost = false;
     let lastFrameMs: number | null = null;
     let frameId: number | null = null;
+    let dictation: DictationState = CLOSED_DICTATION;
+    let dictationField: HTMLElement | null = null;
+    let dictationPlacement: PanelPlacement = 'lower';
+    let dictationSessionId: string | null = null;
+    let speechMode: SpeechMode = DEFAULT_SPEECH_MODE;
+    let panelLocked = false;
+    const panel = new DictationPanel((action) => handlePanelAction(action));
 
     const render = (point: Point): void => {
       cursor.style.transform = `translate(${point.x - RING_SIZE / 2}px, ${point.y - RING_SIZE / 2}px)`;
@@ -256,15 +273,104 @@ export default defineContentScript({
       return true;
     };
 
+    const isCapturing = (): boolean => dictation.stage === 'starting' || dictation.stage === 'listening';
+
+    const newSessionId = (): string => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+
+    const sendDictation = (message: RuntimeMessage): Promise<ForwardResponse | undefined> =>
+      chrome.runtime.sendMessage(message).catch(() => undefined);
+
+    const runDictationEffect = (effect: DictationEffect): void => {
+      if (effect === 'startMic') {
+        const sessionId = newSessionId();
+        dictationSessionId = sessionId;
+        void sendDictation({ type: 'DICTATION_START', payload: { sessionId } }).then((response) => {
+          if (!response?.ok && dictationSessionId === sessionId) {
+            dispatchDictation({ type: 'failed', code: 'startFailed' });
+          }
+        });
+        return;
+      }
+      if (dictationSessionId === null) return;
+      if (effect === 'stopMic') {
+        void sendDictation({ type: 'DICTATION_STOP', payload: { sessionId: dictationSessionId } });
+      } else if (effect === 'abortMic') {
+        void sendDictation({ type: 'DICTATION_ABORT', payload: { sessionId: dictationSessionId } });
+        dictationSessionId = null;
+      }
+    };
+
+    const dispatchDictation = (event: DictationEvent): void => {
+      const previous = dictation;
+      const { state, effect } = advanceDictation(previous, event, performance.now());
+      dictation = state;
+      runDictationEffect(effect);
+      if (!isCapturing()) dictationSessionId = null;
+      if (state === previous) return;
+
+      if (state.stage !== previous.stage) {
+        panelLocked = true;
+        magnet = null;
+      }
+      if (state.stage === 'closed') {
+        panel.hide();
+        dictationField = null;
+        return;
+      }
+      panel.render(state, speechMode, dictationPlacement);
+    };
+
+    const handlePanelAction = (action: PanelAction): void => {
+      dispatchDictation({ type: action });
+    };
+
+    const placementFor = (field: HTMLElement): PanelPlacement => {
+      const rect = field.getBoundingClientRect();
+      return rect.top + rect.height / 2 < window.innerHeight / 2 ? 'lower' : 'upper';
+    };
+
+    const openDictation = (field: HTMLElement): void => {
+      dictationField = field;
+      dictationPlacement = placementFor(field);
+      void chrome.runtime
+        .sendMessage({ type: 'QUERY_STATUS' })
+        .then((response: StatusResponse | undefined) => {
+          speechMode = response?.speechMode ?? DEFAULT_SPEECH_MODE;
+        })
+        .catch(() => {})
+        .finally(() => {
+          if (dictationField === field) dispatchDictation({ type: 'open' });
+        });
+    };
+
+    const closeDictationNow = (): void => {
+      dictation = CLOSED_DICTATION;
+      dictationSessionId = null;
+      dictationField = null;
+      panelLocked = false;
+      panel.hide();
+    };
+
+    const afterPageClick = (target: ClickTarget): void => {
+      const field = findTextField(target.clickable);
+      if (field) openDictation(field);
+      else if (dictation.stage !== 'closed') dispatchDictation({ type: 'close' });
+    };
+
     const tick = (now: number): void => {
       frameId = requestAnimationFrame(tick);
       const elapsedMs = lastFrameMs === null ? 0 : now - lastFrameMs;
       lastFrameMs = now;
+      if (dictation.stage !== 'closed') dispatchDictation({ type: 'tick' });
       if (!hasPosition || gesture !== null || faceLost) return;
-      if (!voiceActive && runEdgeScroll(elapsedMs, now)) return;
 
-      if (clickingPaused || voiceActive) {
+      const panelOpen = dictation.stage !== 'closed';
+      const panelOnly = voiceActive || isCapturing();
+      if (!panelOnly && !panelOpen && runEdgeScroll(elapsedMs, now)) return;
+
+      if (clickingPaused || (panelOnly && !panelOpen)) {
         magnet = null;
+        panel.highlight(null);
         display = smoothPointer(display, raw, elapsedMs, false);
         render(display);
         return;
@@ -278,17 +384,27 @@ export default defineContentScript({
       display = smoothPointer(display, aim ?? raw, elapsedMs, aim !== null);
       render(display);
 
-      const target = findClickTarget(display.x, display.y);
-      if (target && target.clickable !== magnet && canMagnetize(target.clickable)) {
-        magnet = target.clickable;
+      const overPanel = panelOpen && panel.owns(document.elementFromPoint(display.x, display.y));
+      let button = overPanel ? panel.buttonAt(display.x, display.y) : null;
+      if (panelLocked) {
+        if (button === null) panelLocked = false;
+        else button = null;
       }
+      const pageTarget = overPanel || panelOnly ? null : findClickTarget(display.x, display.y);
+      const clickable = button ?? pageTarget?.clickable ?? null;
+      if (clickable && clickable !== magnet && canMagnetize(clickable)) magnet = clickable;
+      panel.highlight(button);
 
-      const { progress, fired } = dwell.update(target?.clickable ?? null, display.x, display.y, now);
+      const { progress, fired } = dwell.update(clickable, display.x, display.y, now);
       setProgress(fired ? 0 : progress);
+      if (!fired) return;
 
-      if (fired && target) {
-        performClick(target, display.x, display.y);
-        flash(CLICK_COLOR);
+      flash(CLICK_COLOR);
+      if (button) {
+        panel.activate(button);
+      } else if (pageTarget) {
+        performClick(pageTarget, display.x, display.y);
+        afterPageClick(pageTarget);
       }
     };
 
@@ -301,6 +417,7 @@ export default defineContentScript({
       edgeScroll.reset();
       voiceActive = false;
       faceLost = false;
+      closeDictationNow();
       setPaused(false);
       setOverlay(null);
 
@@ -314,6 +431,7 @@ export default defineContentScript({
 
     const attach = (): void => {
       document.body.appendChild(cursor);
+      panel.attach(document.body);
       render(display);
     };
 
@@ -346,6 +464,19 @@ export default defineContentScript({
 
       if (runtimeMessage.type === 'FACE_PRESENCE') {
         setFacePresent(runtimeMessage.payload.present);
+      }
+
+      if (runtimeMessage.type === 'SPEECH_STATUS' && runtimeMessage.payload.sessionId === dictationSessionId) {
+        dispatchDictation(runtimeMessage.payload.phase === 'ended' ? { type: 'ended' } : { type: 'listening' });
+      }
+
+      if (runtimeMessage.type === 'SPEECH_RESULT' && runtimeMessage.payload.sessionId === dictationSessionId) {
+        const { text, isFinal } = runtimeMessage.payload;
+        dispatchDictation({ type: 'transcript', text, isFinal });
+      }
+
+      if (runtimeMessage.type === 'SPEECH_ERROR' && runtimeMessage.payload.sessionId === dictationSessionId) {
+        dispatchDictation({ type: 'failed', code: runtimeMessage.payload.code });
       }
 
       if (runtimeMessage.type === 'GESTURE_HOLD') {

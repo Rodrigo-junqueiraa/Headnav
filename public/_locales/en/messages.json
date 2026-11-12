@@ -100,5 +100,35 @@
   "setupLocalVoiceDownloading": { "message": "downloading…" },
   "setupLocalVoiceUnavailable": { "message": "not available for this language in this Chrome" },
   "setupLocalVoiceUnsupported": { "message": "not supported by this Chrome version" },
-  "setupLocalVoiceFailed": { "message": "could not be installed" }
+  "setupLocalVoiceFailed": { "message": "could not be installed" },
+
+  "panelTitle": { "message": "Voice typing" },
+  "panelModeOnline": { "message": "☁ Online (Google)" },
+  "panelModeLocal": { "message": "🔒 On this computer" },
+  "panelOnlineNotice": {
+    "message": "To turn your speech into text, your voice is sent to Google. The camera video stays on this computer."
+  },
+  "panelLocalNotice": { "message": "Your voice stays on this computer." },
+  "panelAllowAndSpeak": { "message": "Allow and speak" },
+  "panelSpeak": { "message": "Speak" },
+  "panelAllowAndSpeakAgain": { "message": "Allow and speak again" },
+  "panelSpeakAgain": { "message": "Speak again" },
+  "panelClose": { "message": "Close" },
+  "panelCancel": { "message": "Cancel" },
+  "panelDone": { "message": "Done" },
+  "panelStarting": { "message": "Opening the microphone…" },
+  "panelListening": { "message": "Listening — speak now" },
+  "panelMicOn": { "message": "Microphone on" },
+  "panelReview": { "message": "This is what I understood:" },
+  "panelErrorNoSpeech": { "message": "I didn't hear anything. Try speaking a little closer to the microphone." },
+  "panelErrorNetwork": { "message": "There is no internet connection, so online voice typing is unavailable." },
+  "panelErrorMicBlocked": {
+    "message": "The microphone is blocked for HeadNav. Ask your helper to allow it on the setup page."
+  },
+  "panelErrorNoMicrophone": { "message": "No microphone was found, or another app is using it." },
+  "panelErrorLocalUnavailable": {
+    "message": "Local voice is not installed. Ask your helper to install it on the setup page, or to switch to online."
+  },
+  "panelErrorUnsupported": { "message": "This Chrome does not support voice typing." },
+  "panelErrorGeneric": { "message": "Voice typing stopped unexpectedly." }
 }

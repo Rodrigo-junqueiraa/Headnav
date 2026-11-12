@@ -33,14 +33,24 @@ export type RuntimeMessage =
   | { type: 'DETECTION_ERROR'; payload: { code: DetectionErrorCode; detail: string } }
   | { type: 'VOICE_TEST_START' }
   | { type: 'VOICE_TEST_STOP' }
-  | { type: 'SPEECH_START'; payload: { mode: SpeechMode } }
+  | { type: 'DICTATION_START'; payload: { sessionId: string } }
+  | { type: 'DICTATION_STOP'; payload: { sessionId: string } }
+  | { type: 'DICTATION_ABORT'; payload: { sessionId: string } }
+  | { type: 'SPEECH_START'; payload: { mode: SpeechMode; sessionId: string } }
   | { type: 'SPEECH_STOP' }
-  | { type: 'SPEECH_STATUS'; payload: { phase: SpeechPhase; lang: string; mode: SpeechMode } }
-  | { type: 'SPEECH_RESULT'; payload: { text: string; isFinal: boolean } }
-  | { type: 'SPEECH_ERROR'; payload: { code: SpeechErrorCode } }
+  | { type: 'SPEECH_ABORT' }
+  | { type: 'SPEECH_STATUS'; payload: { phase: SpeechPhase; lang: string; mode: SpeechMode; sessionId: string } }
+  | { type: 'SPEECH_RESULT'; payload: { text: string; isFinal: boolean; sessionId: string } }
+  | { type: 'SPEECH_ERROR'; payload: { code: SpeechErrorCode; sessionId: string } }
   | { type: 'VOICE_ACTIVE'; payload: { active: boolean } }
   | { type: 'FACE_PRESENCE'; payload: { present: boolean } };
 
 export type ForwardResponse = { ok: boolean };
 
-export type StatusResponse = { running: boolean; clickingPaused: boolean; voiceActive: boolean; facePresent: boolean };
+export type StatusResponse = {
+  running: boolean;
+  clickingPaused: boolean;
+  voiceActive: boolean;
+  facePresent: boolean;
+  speechMode: SpeechMode;
+};

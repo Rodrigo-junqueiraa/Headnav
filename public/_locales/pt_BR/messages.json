@@ -100,5 +100,35 @@
   "setupLocalVoiceDownloading": { "message": "baixando…" },
   "setupLocalVoiceUnavailable": { "message": "indisponível para este idioma neste Chrome" },
   "setupLocalVoiceUnsupported": { "message": "não suportada nesta versão do Chrome" },
-  "setupLocalVoiceFailed": { "message": "não foi possível instalar" }
+  "setupLocalVoiceFailed": { "message": "não foi possível instalar" },
+
+  "panelTitle": { "message": "Ditado por voz" },
+  "panelModeOnline": { "message": "☁ Online (Google)" },
+  "panelModeLocal": { "message": "🔒 Neste computador" },
+  "panelOnlineNotice": {
+    "message": "Para transformar sua fala em texto, sua voz é enviada ao Google. O vídeo da câmera fica neste computador."
+  },
+  "panelLocalNotice": { "message": "Sua voz fica neste computador." },
+  "panelAllowAndSpeak": { "message": "Permitir e falar" },
+  "panelSpeak": { "message": "Falar" },
+  "panelAllowAndSpeakAgain": { "message": "Permitir e falar de novo" },
+  "panelSpeakAgain": { "message": "Falar de novo" },
+  "panelClose": { "message": "Fechar" },
+  "panelCancel": { "message": "Cancelar" },
+  "panelDone": { "message": "Pronto" },
+  "panelStarting": { "message": "Abrindo o microfone…" },
+  "panelListening": { "message": "Ouvindo — pode falar" },
+  "panelMicOn": { "message": "Microfone ligado" },
+  "panelReview": { "message": "Foi isto que eu entendi:" },
+  "panelErrorNoSpeech": { "message": "Não ouvi nada. Tente falar um pouco mais perto do microfone." },
+  "panelErrorNetwork": { "message": "Sem conexão com a internet, o ditado online está indisponível." },
+  "panelErrorMicBlocked": {
+    "message": "O microfone está bloqueado para o HeadNav. Peça ao seu ajudante para liberá-lo na página de configuração."
+  },
+  "panelErrorNoMicrophone": { "message": "Nenhum microfone foi encontrado, ou outro aplicativo está usando o microfone." },
+  "panelErrorLocalUnavailable": {
+    "message": "A voz local não está instalada. Peça ao seu ajudante para instalá-la na página de configuração ou mudar para o modo online."
+  },
+  "panelErrorUnsupported": { "message": "Este Chrome não tem suporte a ditado por voz." },
+  "panelErrorGeneric": { "message": "O ditado parou de forma inesperada." }
 }
