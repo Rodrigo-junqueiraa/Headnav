@@ -36,8 +36,9 @@ export type RuntimeMessage =
   | { type: 'SPEECH_STATUS'; payload: { phase: SpeechPhase; lang: string; mode: SpeechMode } }
   | { type: 'SPEECH_RESULT'; payload: { text: string; isFinal: boolean } }
   | { type: 'SPEECH_ERROR'; payload: { code: SpeechErrorCode } }
-  | { type: 'VOICE_ACTIVE'; payload: { active: boolean } };
+  | { type: 'VOICE_ACTIVE'; payload: { active: boolean } }
+  | { type: 'FACE_PRESENCE'; payload: { present: boolean } };
 
 export type ForwardResponse = { ok: boolean };
 
-export type StatusResponse = { running: boolean; clickingPaused: boolean; voiceActive: boolean };
+export type StatusResponse = { running: boolean; clickingPaused: boolean; voiceActive: boolean; facePresent: boolean };

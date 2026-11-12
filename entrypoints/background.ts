@@ -3,6 +3,7 @@ import { mapPoseToNormalized } from '@/lib/cursor/poseToScreen';
 import { JawHoldDetector } from '@/lib/gestures/jawHold';
 import { WinkHoldDetector } from '@/lib/gestures/winkHold';
 import type { DetectionStatus, ForwardResponse, GestureKind, RuntimeMessage, StatusResponse } from '@/lib/messages';
+import { FacePresenceTracker } from '@/lib/tracking/facePresence';
 import { SpeechGestureGuard } from '@/lib/voice/speechGestureGuard';
 import { loadSpeechMode } from '@/lib/voice/speechMode';
 
@@ -13,9 +14,11 @@ const cursorFilterY = new OneEuroFilter(CURSOR_FILTER_CONFIG);
 const winkDetector = new WinkHoldDetector();
 const jawDetector = new JawHoldDetector();
 const speechGuard = new SpeechGestureGuard();
+const facePresence = new FacePresenceTracker();
 let gestureActive = false;
 let clickingPaused = false;
 let voiceActive = false;
+let facePresent = true;
 
 async function hasOffscreenDocument(): Promise<boolean> {
   const contexts = await chrome.runtime.getContexts({
@@ -84,16 +87,33 @@ function runFaceGestures(status: DetectionStatus): boolean {
   return false;
 }
 
+function endGestureHold(): void {
+  if (!gestureActive) return;
+  gestureActive = false;
+  cursorFilterX.reset();
+  cursorFilterY.reset();
+  sendGestureHold(null, 0, false);
+}
+
+function updateFacePresence(status: DetectionStatus): void {
+  const present = facePresence.update(status.faceDetected, status.timestamp);
+  if (present === facePresent) return;
+  facePresent = present;
+  winkDetector.reset();
+  jawDetector.reset();
+  cursorFilterX.reset();
+  cursorFilterY.reset();
+  endGestureHold();
+  void broadcastToTabs({ type: 'FACE_PRESENCE', payload: { present } });
+}
+
 function handleDetectionStatus(status: DetectionStatus): void {
   updateVoiceActive(status.timestamp);
+  updateFacePresence(status);
+  if (!status.faceDetected) return;
   if (!voiceActive && runFaceGestures(status)) return;
 
-  if (gestureActive) {
-    gestureActive = false;
-    cursorFilterX.reset();
-    cursorFilterY.reset();
-    sendGestureHold(null, 0, false);
-  }
+  endGestureHold();
 
   const { x, y } = mapPoseToNormalized(status.yaw, status.pitch);
   void sendToActiveTab({
@@ -108,9 +128,11 @@ async function startDetection(): Promise<void> {
   winkDetector.reset();
   jawDetector.reset();
   speechGuard.reset();
+  facePresence.reset();
   gestureActive = false;
   clickingPaused = false;
   voiceActive = false;
+  facePresent = true;
   if (!(await hasOffscreenDocument())) {
     await chrome.offscreen.createDocument({
       url: OFFSCREEN_URL,
@@ -129,9 +151,11 @@ async function stopDetection(): Promise<void> {
   winkDetector.reset();
   jawDetector.reset();
   speechGuard.reset();
+  facePresence.reset();
   gestureActive = false;
   clickingPaused = false;
   voiceActive = false;
+  facePresent = true;
   await broadcastToTabs({ type: 'DETECTION_STATE', payload: { running: false } });
 }
 
@@ -152,7 +176,7 @@ export default defineBackground(() => {
         return true;
       case 'QUERY_STATUS':
         hasOffscreenDocument().then((running) => {
-          const status: StatusResponse = { running, clickingPaused, voiceActive };
+          const status: StatusResponse = { running, clickingPaused, voiceActive, facePresent };
           sendResponse(status);
         });
         return true;

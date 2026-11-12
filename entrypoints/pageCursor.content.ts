@@ -20,6 +20,7 @@ export default defineContentScript({
     const DOT_COLOR = 'rgba(37, 99, 235, 0.35)';
     const PAUSED_DOT_COLOR = 'rgba(148, 163, 184, 0.3)';
     const VOICE_DOT_COLOR = 'rgba(239, 68, 68, 0.55)';
+    const FACE_LOST_DOT_COLOR = 'rgba(100, 116, 139, 0.35)';
     const CLICK_COLOR = 'rgba(34, 197, 94, 0.85)';
     const DWELL_COLOR = '#f59e0b';
     const NAVIGATION_COLOR = '#38bdf8';
@@ -115,6 +116,7 @@ export default defineContentScript({
     let overlay: OverlayKind | null = null;
     let clickingPaused = false;
     let voiceActive = false;
+    let faceLost = false;
     let lastFrameMs: number | null = null;
     let frameId: number | null = null;
 
@@ -144,18 +146,20 @@ export default defineContentScript({
 
     const idleSymbol = (): string | null => {
       if (voiceActive) return '🎤';
+      if (faceLost) return '?';
       if (clickingPaused) return '⏸';
       return null;
     };
 
     const restingDotColor = (): string => {
       if (voiceActive) return VOICE_DOT_COLOR;
+      if (faceLost) return FACE_LOST_DOT_COLOR;
       return clickingPaused ? PAUSED_DOT_COLOR : DOT_COLOR;
     };
 
     const applyDotStyle = (): void => {
       dot.style.background = restingDotColor();
-      dot.style.opacity = clickingPaused && !voiceActive ? '0.6' : '1';
+      dot.style.opacity = (clickingPaused || faceLost) && !voiceActive ? '0.6' : '1';
     };
 
     const setOverlay = (kind: OverlayKind | null): void => {
@@ -212,6 +216,15 @@ export default defineContentScript({
       if (overlay === null) setOverlay(null);
     };
 
+    const setFacePresent = (present: boolean): void => {
+      faceLost = !present;
+      applyDotStyle();
+      magnet = null;
+      dwell.reset();
+      clearEdgeOverlay();
+      if (overlay === null) setOverlay(null);
+    };
+
     const runEdgeScroll = (elapsedMs: number, now: number): boolean => {
       const edge = edgeAt(raw.y, window.innerHeight);
       if (edge === null) {
@@ -247,7 +260,7 @@ export default defineContentScript({
       frameId = requestAnimationFrame(tick);
       const elapsedMs = lastFrameMs === null ? 0 : now - lastFrameMs;
       lastFrameMs = now;
-      if (!hasPosition || gesture !== null) return;
+      if (!hasPosition || gesture !== null || faceLost) return;
       if (!voiceActive && runEdgeScroll(elapsedMs, now)) return;
 
       if (clickingPaused || voiceActive) {
@@ -287,6 +300,7 @@ export default defineContentScript({
       gesture = null;
       edgeScroll.reset();
       voiceActive = false;
+      faceLost = false;
       setPaused(false);
       setOverlay(null);
 
@@ -330,6 +344,10 @@ export default defineContentScript({
         setVoiceActive(runtimeMessage.payload.active);
       }
 
+      if (runtimeMessage.type === 'FACE_PRESENCE') {
+        setFacePresent(runtimeMessage.payload.present);
+      }
+
       if (runtimeMessage.type === 'GESTURE_HOLD') {
         const { kind, progress, fired } = runtimeMessage.payload;
         gesture = kind;
@@ -356,6 +374,7 @@ export default defineContentScript({
         if (response?.running) {
           setPaused(Boolean(response.clickingPaused));
           setVoiceActive(Boolean(response.voiceActive));
+          setFacePresent(response.facePresent !== false);
         }
       })
       .catch(() => {});
