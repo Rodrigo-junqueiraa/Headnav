@@ -2,7 +2,8 @@ import { OneEuroFilter } from '@/lib/cursor/oneEuroFilter';
 import { mapPoseToNormalized } from '@/lib/cursor/poseToScreen';
 import { JawHoldDetector } from '@/lib/gestures/jawHold';
 import { WinkHoldDetector } from '@/lib/gestures/winkHold';
-import type { DetectionStatus, ForwardResponse, GestureKind, RuntimeMessage } from '@/lib/messages';
+import type { DetectionStatus, ForwardResponse, GestureKind, RuntimeMessage, StatusResponse } from '@/lib/messages';
+import { SpeechGestureGuard } from '@/lib/voice/speechGestureGuard';
 import { loadSpeechMode } from '@/lib/voice/speechMode';
 
 const OFFSCREEN_URL = 'sensors.html';
@@ -11,8 +12,10 @@ const cursorFilterX = new OneEuroFilter(CURSOR_FILTER_CONFIG);
 const cursorFilterY = new OneEuroFilter(CURSOR_FILTER_CONFIG);
 const winkDetector = new WinkHoldDetector();
 const jawDetector = new JawHoldDetector();
+const speechGuard = new SpeechGestureGuard();
 let gestureActive = false;
 let clickingPaused = false;
+let voiceActive = false;
 
 async function hasOffscreenDocument(): Promise<boolean> {
   const contexts = await chrome.runtime.getContexts({
@@ -46,14 +49,23 @@ function sendGestureHold(kind: GestureKind | null, progress: number, fired: bool
   void sendToActiveTab({ type: 'GESTURE_HOLD', payload: { kind, progress, fired } });
 }
 
-function handleDetectionStatus(status: DetectionStatus): void {
+function updateVoiceActive(timestampMs: number): void {
+  const active = speechGuard.isSuppressing(timestampMs);
+  if (active === voiceActive) return;
+  voiceActive = active;
+  winkDetector.reset();
+  jawDetector.reset();
+  void broadcastToTabs({ type: 'VOICE_ACTIVE', payload: { active } });
+}
+
+function runFaceGestures(status: DetectionStatus): boolean {
   const wink = winkDetector.update(status.blinkLeft, status.blinkRight, status.timestamp);
 
   if (wink.side !== null) {
     gestureActive = true;
     jawDetector.reset();
     sendGestureHold(wink.side === 'left' ? 'back' : 'forward', wink.progress, wink.fired !== null);
-    return;
+    return true;
   }
 
   const jaw = jawDetector.update(status.jawOpen, status.timestamp);
@@ -66,8 +78,15 @@ function handleDetectionStatus(status: DetectionStatus): void {
   if (jaw.active) {
     gestureActive = true;
     sendGestureHold('pause', jaw.progress, jaw.fired);
-    return;
+    return true;
   }
+
+  return false;
+}
+
+function handleDetectionStatus(status: DetectionStatus): void {
+  updateVoiceActive(status.timestamp);
+  if (!voiceActive && runFaceGestures(status)) return;
 
   if (gestureActive) {
     gestureActive = false;
@@ -88,8 +107,10 @@ async function startDetection(): Promise<void> {
   cursorFilterY.reset();
   winkDetector.reset();
   jawDetector.reset();
+  speechGuard.reset();
   gestureActive = false;
   clickingPaused = false;
+  voiceActive = false;
   if (!(await hasOffscreenDocument())) {
     await chrome.offscreen.createDocument({
       url: OFFSCREEN_URL,
@@ -107,8 +128,10 @@ async function stopDetection(): Promise<void> {
   }
   winkDetector.reset();
   jawDetector.reset();
+  speechGuard.reset();
   gestureActive = false;
   clickingPaused = false;
+  voiceActive = false;
   await broadcastToTabs({ type: 'DETECTION_STATE', payload: { running: false } });
 }
 
@@ -128,7 +151,10 @@ export default defineBackground(() => {
           .catch((error: unknown) => sendResponse({ ok: false, error: String(error) }));
         return true;
       case 'QUERY_STATUS':
-        hasOffscreenDocument().then((running) => sendResponse({ running, clickingPaused }));
+        hasOffscreenDocument().then((running) => {
+          const status: StatusResponse = { running, clickingPaused, voiceActive };
+          sendResponse(status);
+        });
         return true;
       case 'DETECTION_STATUS':
         handleDetectionStatus(runtimeMessage.payload);
@@ -144,6 +170,13 @@ export default defineBackground(() => {
           .then(sendResponse)
           .catch(() => sendResponse({ ok: false }));
         return true;
+      case 'SPEECH_STATUS':
+        if (runtimeMessage.payload.phase === 'ended') speechGuard.end(Date.now());
+        else speechGuard.start(Date.now());
+        return false;
+      case 'SPEECH_ERROR':
+        speechGuard.end(Date.now());
+        return false;
       default:
         return false;
     }

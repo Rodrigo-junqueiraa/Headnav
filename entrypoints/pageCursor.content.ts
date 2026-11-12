@@ -19,6 +19,7 @@ export default defineContentScript({
     const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
     const DOT_COLOR = 'rgba(37, 99, 235, 0.35)';
     const PAUSED_DOT_COLOR = 'rgba(148, 163, 184, 0.3)';
+    const VOICE_DOT_COLOR = 'rgba(239, 68, 68, 0.55)';
     const CLICK_COLOR = 'rgba(34, 197, 94, 0.85)';
     const DWELL_COLOR = '#f59e0b';
     const NAVIGATION_COLOR = '#38bdf8';
@@ -113,6 +114,7 @@ export default defineContentScript({
     let gesture: GestureKind | null = null;
     let overlay: OverlayKind | null = null;
     let clickingPaused = false;
+    let voiceActive = false;
     let lastFrameMs: number | null = null;
     let frameId: number | null = null;
 
@@ -140,12 +142,29 @@ export default defineContentScript({
       return clickingPaused ? '▶' : '⏸';
     };
 
+    const idleSymbol = (): string | null => {
+      if (voiceActive) return '🎤';
+      if (clickingPaused) return '⏸';
+      return null;
+    };
+
+    const restingDotColor = (): string => {
+      if (voiceActive) return VOICE_DOT_COLOR;
+      return clickingPaused ? PAUSED_DOT_COLOR : DOT_COLOR;
+    };
+
+    const applyDotStyle = (): void => {
+      dot.style.background = restingDotColor();
+      dot.style.opacity = clickingPaused && !voiceActive ? '0.6' : '1';
+    };
+
     const setOverlay = (kind: OverlayKind | null): void => {
       overlay = kind;
       if (kind === null) {
+        const symbol = idleSymbol();
         progressArc.setAttribute('stroke', DWELL_COLOR);
-        badge.textContent = '⏸';
-        badge.style.display = clickingPaused ? 'flex' : 'none';
+        badge.textContent = symbol ?? '';
+        badge.style.display = symbol === null ? 'none' : 'flex';
         setProgress(0);
         return;
       }
@@ -157,8 +176,7 @@ export default defineContentScript({
 
     const setPaused = (paused: boolean): void => {
       clickingPaused = paused;
-      dot.style.background = paused ? PAUSED_DOT_COLOR : DOT_COLOR;
-      dot.style.opacity = paused ? '0.6' : '1';
+      applyDotStyle();
       magnet = null;
       dwell.reset();
       if (overlay === null) setOverlay(null);
@@ -169,7 +187,7 @@ export default defineContentScript({
         [
           { transform: 'scale(1)', backgroundColor: color },
           { transform: 'scale(1.5)', backgroundColor: color },
-          { transform: 'scale(1)', backgroundColor: clickingPaused ? PAUSED_DOT_COLOR : DOT_COLOR },
+          { transform: 'scale(1)', backgroundColor: restingDotColor() },
         ],
         { duration: 280, easing: 'ease-out' },
       );
@@ -183,6 +201,15 @@ export default defineContentScript({
     const clearEdgeOverlay = (): void => {
       edgeScroll.reset();
       if (overlay === 'scrollUp' || overlay === 'scrollDown') setOverlay(null);
+    };
+
+    const setVoiceActive = (active: boolean): void => {
+      voiceActive = active;
+      applyDotStyle();
+      magnet = null;
+      dwell.reset();
+      clearEdgeOverlay();
+      if (overlay === null) setOverlay(null);
     };
 
     const runEdgeScroll = (elapsedMs: number, now: number): boolean => {
@@ -221,9 +248,9 @@ export default defineContentScript({
       const elapsedMs = lastFrameMs === null ? 0 : now - lastFrameMs;
       lastFrameMs = now;
       if (!hasPosition || gesture !== null) return;
-      if (runEdgeScroll(elapsedMs, now)) return;
+      if (!voiceActive && runEdgeScroll(elapsedMs, now)) return;
 
-      if (clickingPaused) {
+      if (clickingPaused || voiceActive) {
         magnet = null;
         display = smoothPointer(display, raw, elapsedMs, false);
         render(display);
@@ -259,6 +286,7 @@ export default defineContentScript({
       lastFrameMs = null;
       gesture = null;
       edgeScroll.reset();
+      voiceActive = false;
       setPaused(false);
       setOverlay(null);
 
@@ -298,6 +326,10 @@ export default defineContentScript({
         setPaused(runtimeMessage.payload.paused);
       }
 
+      if (runtimeMessage.type === 'VOICE_ACTIVE') {
+        setVoiceActive(runtimeMessage.payload.active);
+      }
+
       if (runtimeMessage.type === 'GESTURE_HOLD') {
         const { kind, progress, fired } = runtimeMessage.payload;
         gesture = kind;
@@ -321,7 +353,10 @@ export default defineContentScript({
       .sendMessage({ type: 'QUERY_STATUS' })
       .then((response: StatusResponse | undefined) => {
         setVisible(Boolean(response?.running));
-        if (response?.running) setPaused(Boolean(response.clickingPaused));
+        if (response?.running) {
+          setPaused(Boolean(response.clickingPaused));
+          setVoiceActive(Boolean(response.voiceActive));
+        }
       })
       .catch(() => {});
   },

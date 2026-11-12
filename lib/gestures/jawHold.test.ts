@@ -59,4 +59,13 @@ describe('JawHoldDetector', () => {
     detector.update(0.6, 1600);
     expect(detector.update(0.6, 2600).fired).toBe(true);
   });
+
+  it('completes a hold on speech-like jaw motion, which is why gestures pause while dictating', () => {
+    const detector = new JawHoldDetector();
+    let firedAtMs: number | null = null;
+    for (let t = 0; t <= 3000 && firedAtMs === null; t += 100) {
+      if (detector.update(t % 200 === 0 ? 0.4 : 0.1, t).fired) firedAtMs = t;
+    }
+    expect(firedAtMs).toBe(1400);
+  });
 });
