@@ -15,6 +15,8 @@ export type DetectionStatus = {
 
 export type GestureKind = 'back' | 'forward' | 'pause';
 
+export type DetectionErrorCode = 'cameraFailed' | 'videoFailed' | 'modelFailed' | 'framesStalled';
+
 export type SpeechPhase = 'listening' | 'sound' | 'speech' | 'ended';
 
 export type SpeechErrorCode = SpeechRecognitionErrorCode | 'unsupported' | 'startFailed' | 'localUnavailable';
@@ -28,7 +30,7 @@ export type RuntimeMessage =
   | { type: 'CURSOR_MOVE'; payload: { x: number; y: number } }
   | { type: 'GESTURE_HOLD'; payload: { kind: GestureKind | null; progress: number; fired: boolean } }
   | { type: 'CLICKING_PAUSED'; payload: { paused: boolean } }
-  | { type: 'DETECTION_ERROR'; payload: { message: string } }
+  | { type: 'DETECTION_ERROR'; payload: { code: DetectionErrorCode; detail: string } }
   | { type: 'VOICE_TEST_START' }
   | { type: 'VOICE_TEST_STOP' }
   | { type: 'SPEECH_START'; payload: { mode: SpeechMode } }

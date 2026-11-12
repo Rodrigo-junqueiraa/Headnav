@@ -78,37 +78,37 @@
   <body>
     <header>
       <h1>HeadNav</h1>
-      <span id="dot" title="detection status"></span>
+      <span id="dot" data-i18n-title="popupStatusDot"></span>
     </header>
 
     <div class="buttons">
-      <button id="toggle" type="button">Start</button>
-      <button id="grant" class="secondary" type="button">Setup</button>
+      <button id="toggle" type="button" data-i18n="popupStart"></button>
+      <button id="grant" class="secondary" type="button" data-i18n="popupSetup"></button>
     </div>
 
-    <div class="row"><span>Face detected</span><span id="face">&mdash;</span></div>
-    <div class="row"><span>FPS</span><span id="fps">&mdash;</span></div>
-    <div class="row"><span>Yaw (turn)</span><span id="yaw">&mdash;</span></div>
-    <div class="row"><span>Pitch (up/down)</span><span id="pitch">&mdash;</span></div>
-    <div class="row"><span>Roll (tilt)</span><span id="roll">&mdash;</span></div>
+    <div class="row"><span data-i18n="popupFaceDetected"></span><span id="face">&mdash;</span></div>
+    <div class="row"><span data-i18n="popupFps"></span><span id="fps">&mdash;</span></div>
+    <div class="row"><span data-i18n="popupYaw"></span><span id="yaw">&mdash;</span></div>
+    <div class="row"><span data-i18n="popupPitch"></span><span id="pitch">&mdash;</span></div>
+    <div class="row"><span data-i18n="popupRoll"></span><span id="roll">&mdash;</span></div>
 
     <div class="bar">
-      <div class="label"><span>Blink left</span><span id="blinkLeftVal">0%</span></div>
+      <div class="label"><span data-i18n="popupBlinkLeft"></span><span id="blinkLeftVal">0%</span></div>
       <div class="track"><div id="blinkLeft" class="fill"></div></div>
     </div>
     <div class="bar">
-      <div class="label"><span>Blink right</span><span id="blinkRightVal">0%</span></div>
+      <div class="label"><span data-i18n="popupBlinkRight"></span><span id="blinkRightVal">0%</span></div>
       <div class="track"><div id="blinkRight" class="fill"></div></div>
     </div>
     <div class="bar">
-      <div class="label"><span>Jaw open</span><span id="jawOpenVal">0%</span></div>
+      <div class="label"><span data-i18n="popupJawOpen"></span><span id="jawOpenVal">0%</span></div>
       <div class="track"><div id="jawOpen" class="fill"></div></div>
     </div>
 
     <div class="voice">
-      <div class="row"><span>Voice</span><span id="voiceStatus">&mdash;</span></div>
+      <div class="row"><span data-i18n="popupVoice"></span><span id="voiceStatus">&mdash;</span></div>
       <div id="transcript"></div>
-      <button id="voiceTest" class="secondary" type="button" disabled>Test voice</button>
+      <button id="voiceTest" class="secondary" type="button" data-i18n="popupTestVoice" disabled></button>
     </div>
 
     <div id="error"></div>

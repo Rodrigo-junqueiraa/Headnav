@@ -1,4 +1,6 @@
+import { t, translatePage, type MessageKey } from '@/lib/i18n/translate';
 import type {
+  DetectionErrorCode,
   DetectionStatus,
   ForwardResponse,
   RuntimeMessage,
@@ -24,11 +26,22 @@ const voiceButton = document.querySelector<HTMLButtonElement>('#voiceTest');
 const voiceStatusEl = document.querySelector<HTMLSpanElement>('#voiceStatus');
 const transcriptEl = document.querySelector<HTMLDivElement>('#transcript');
 
-const PHASE_TEXT: Record<SpeechPhase, string> = {
-  listening: 'listening',
-  sound: 'sound detected',
-  speech: 'speech detected',
-  ended: 'ended',
+const PHASE_TEXT: Record<Exclude<SpeechPhase, 'listening'>, MessageKey> = {
+  sound: 'popupVoiceSound',
+  speech: 'popupVoiceSpeech',
+  ended: 'popupVoiceEnded',
+};
+
+const MODE_TEXT: Record<SpeechMode, MessageKey> = {
+  online: 'speechModeOnline',
+  local: 'speechModeLocal',
+};
+
+const DETECTION_ERROR_TEXT: Record<DetectionErrorCode, MessageKey> = {
+  cameraFailed: 'errorCameraFailed',
+  videoFailed: 'errorVideoFailed',
+  modelFailed: 'errorModelFailed',
+  framesStalled: 'errorFramesStalled',
 };
 
 const MICROPHONE_BLOCKED: SpeechErrorCode[] = ['not-allowed', 'service-not-allowed', 'audio-capture'];
@@ -39,7 +52,7 @@ let voiceFailed = false;
 
 function setRunning(value: boolean): void {
   running = value;
-  if (toggleButton) toggleButton.textContent = value ? 'Stop' : 'Start';
+  if (toggleButton) toggleButton.textContent = t(value ? 'popupStop' : 'popupStart');
   dot?.classList.toggle('on', value);
   if (voiceButton) voiceButton.disabled = !value;
   if (!value) {
@@ -66,7 +79,7 @@ function resetReadouts(): void {
 }
 
 function renderStatus(status: DetectionStatus): void {
-  if (faceEl) faceEl.textContent = status.faceDetected ? 'yes' : 'no';
+  if (faceEl) faceEl.textContent = t(status.faceDetected ? 'popupYes' : 'popupNo');
   if (fpsEl) fpsEl.textContent = String(status.fps);
   if (yawEl) yawEl.textContent = `${status.yaw.toFixed(1)}°`;
   if (pitchEl) pitchEl.textContent = `${status.pitch.toFixed(1)}°`;
@@ -76,11 +89,9 @@ function renderStatus(status: DetectionStatus): void {
   setBar('jawOpen', status.jawOpen);
 }
 
-function showError(message: string): void {
-  if (errorEl) errorEl.textContent = message;
-  if (hintEl) {
-    hintEl.textContent = 'If the camera is blocked, click "Setup" and allow it, then start again.';
-  }
+function showError(code: DetectionErrorCode, detail: string): void {
+  if (errorEl) errorEl.textContent = t(DETECTION_ERROR_TEXT[code], detail);
+  if (hintEl) hintEl.textContent = t('popupCameraHint');
 }
 
 function setVoiceStatus(text: string): void {
@@ -89,7 +100,7 @@ function setVoiceStatus(text: string): void {
 
 function setVoiceActive(value: boolean): void {
   voiceActive = value;
-  if (voiceButton) voiceButton.textContent = value ? 'Stop voice test' : 'Test voice';
+  if (voiceButton) voiceButton.textContent = t(value ? 'popupStopVoiceTest' : 'popupTestVoice');
 }
 
 function resetVoice(): void {
@@ -102,7 +113,7 @@ function resetVoice(): void {
 function renderSpeechPhase(phase: SpeechPhase, lang: string, mode: SpeechMode): void {
   setVoiceActive(phase !== 'ended');
   if (phase === 'ended' && voiceFailed) return;
-  setVoiceStatus(phase === 'listening' ? `${PHASE_TEXT[phase]} (${lang}, ${mode})` : PHASE_TEXT[phase]);
+  setVoiceStatus(phase === 'listening' ? t('popupVoiceListening', [lang, t(MODE_TEXT[mode])]) : t(PHASE_TEXT[phase]));
 }
 
 function renderTranscript(text: string, isFinal: boolean): void {
@@ -114,11 +125,11 @@ function renderTranscript(text: string, isFinal: boolean): void {
 function showSpeechError(code: SpeechErrorCode): void {
   voiceFailed = true;
   setVoiceActive(false);
-  setVoiceStatus(`error: ${code}`);
+  setVoiceStatus(t('popupVoiceError', code));
   if (hintEl && MICROPHONE_BLOCKED.includes(code)) {
-    hintEl.textContent = 'If the microphone is blocked, click "Setup" and allow it, then test again.';
+    hintEl.textContent = t('popupMicHint');
   } else if (hintEl && code === 'localUnavailable') {
-    hintEl.textContent = 'Local voice is not installed. Click "Setup" to install it or to choose online.';
+    hintEl.textContent = t('popupLocalVoiceHint');
   }
 }
 
@@ -138,13 +149,13 @@ voiceButton?.addEventListener('click', () => {
   if (!voiceActive) {
     voiceFailed = false;
     renderTranscript('', true);
-    setVoiceStatus('starting…');
+    setVoiceStatus(t('popupVoiceStarting'));
     if (hintEl) hintEl.textContent = '';
   }
   chrome.runtime
     .sendMessage({ type })
     .then((response: ForwardResponse | undefined) => {
-      if (!response?.ok) setVoiceStatus('unavailable, start HeadNav and try again');
+      if (!response?.ok) setVoiceStatus(t('popupVoiceUnavailable'));
     })
     .catch(() => {});
 });
@@ -155,7 +166,7 @@ chrome.runtime.onMessage.addListener((message) => {
     setRunning(true);
     renderStatus(runtimeMessage.payload);
   } else if (runtimeMessage.type === 'DETECTION_ERROR') {
-    showError(runtimeMessage.payload.message);
+    showError(runtimeMessage.payload.code, runtimeMessage.payload.detail);
   } else if (runtimeMessage.type === 'SPEECH_STATUS') {
     renderSpeechPhase(runtimeMessage.payload.phase, runtimeMessage.payload.lang, runtimeMessage.payload.mode);
   } else if (runtimeMessage.type === 'SPEECH_RESULT') {
@@ -164,6 +175,8 @@ chrome.runtime.onMessage.addListener((message) => {
     showSpeechError(runtimeMessage.payload.code);
   }
 });
+
+translatePage();
 
 chrome.runtime
   .sendMessage({ type: 'QUERY_STATUS' })

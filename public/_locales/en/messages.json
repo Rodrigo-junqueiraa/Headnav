@@ -1,0 +1,104 @@
+{
+  "extName": { "message": "HeadNav — Hands-free Navigation" },
+  "extDescription": { "message": "Navigate the web using only head and eye movements. An accessibility tool." },
+
+  "speechModeOnline": { "message": "online" },
+  "speechModeLocal": { "message": "local" },
+
+  "popupStatusDot": { "message": "detection status" },
+  "popupStart": { "message": "Start" },
+  "popupStop": { "message": "Stop" },
+  "popupSetup": { "message": "Setup" },
+  "popupFaceDetected": { "message": "Face detected" },
+  "popupFps": { "message": "FPS" },
+  "popupYaw": { "message": "Yaw (turn)" },
+  "popupPitch": { "message": "Pitch (up/down)" },
+  "popupRoll": { "message": "Roll (tilt)" },
+  "popupBlinkLeft": { "message": "Blink left" },
+  "popupBlinkRight": { "message": "Blink right" },
+  "popupJawOpen": { "message": "Jaw open" },
+  "popupYes": { "message": "yes" },
+  "popupNo": { "message": "no" },
+  "popupCameraHint": { "message": "If the camera is blocked, click \"Setup\" and allow it, then start again." },
+  "popupVoice": { "message": "Voice" },
+  "popupTestVoice": { "message": "Test voice" },
+  "popupStopVoiceTest": { "message": "Stop voice test" },
+  "popupVoiceStarting": { "message": "starting…" },
+  "popupVoiceUnavailable": { "message": "unavailable, start HeadNav and try again" },
+  "popupVoiceListening": {
+    "message": "listening ($LANG$, $MODE$)",
+    "placeholders": { "lang": { "content": "$1" }, "mode": { "content": "$2" } }
+  },
+  "popupVoiceSound": { "message": "sound detected" },
+  "popupVoiceSpeech": { "message": "speech detected" },
+  "popupVoiceEnded": { "message": "ended" },
+  "popupVoiceError": {
+    "message": "error: $CODE$",
+    "placeholders": { "code": { "content": "$1" } }
+  },
+  "popupMicHint": { "message": "If the microphone is blocked, click \"Setup\" and allow it, then test again." },
+  "popupLocalVoiceHint": { "message": "Local voice is not installed. Click \"Setup\" to install it or to choose online." },
+
+  "errorCameraFailed": {
+    "message": "Camera access failed: $DETAIL$",
+    "placeholders": { "detail": { "content": "$1" } }
+  },
+  "errorVideoFailed": {
+    "message": "Video playback failed: $DETAIL$",
+    "placeholders": { "detail": { "content": "$1" } }
+  },
+  "errorModelFailed": {
+    "message": "Failed to load the model: $DETAIL$",
+    "placeholders": { "detail": { "content": "$1" } }
+  },
+  "errorFramesStalled": { "message": "No camera frames are being processed. Try stopping and starting again." },
+
+  "setupTitle": { "message": "HeadNav — Setup" },
+  "setupHeading": { "message": "Set up HeadNav" },
+  "setupIntro": { "message": "Someone can help with this page once. After that, HeadNav is used hands-free." },
+  "setupCameraHeading": { "message": "Camera" },
+  "setupCameraText": {
+    "message": "HeadNav needs your camera to read head and eye movements. All processing happens locally in your browser — no video ever leaves your machine."
+  },
+  "setupAllowCamera": { "message": "Allow camera" },
+  "setupMicrophoneHeading": { "message": "Microphone" },
+  "setupOptional": { "message": "(optional)" },
+  "setupMicrophoneText": { "message": "Used only for voice dictation, and only while you dictate." },
+  "setupAllowMicrophone": { "message": "Allow microphone" },
+  "setupVoiceHeading": { "message": "Voice recognition" },
+  "setupOnlineTitle": { "message": "Online" },
+  "setupRecommended": { "message": "recommended" },
+  "setupOnlineText": {
+    "message": "Usually more accurate, works in more languages, needs no download and works on any computer with Chrome. Needs internet, and Chrome sends your audio to Google to turn it into text."
+  },
+  "setupLocalTitle": { "message": "Local" },
+  "setupLocalText": {
+    "message": "Your audio never leaves this computer, even without internet. Needs a one-time download of the language package, may be less accurate, uses this computer's processor and only works in recent Chrome versions and some languages."
+  },
+  "setupInstallLocalVoice": { "message": "Install local voice" },
+  "setupDeviceCamera": { "message": "Camera" },
+  "setupDeviceMicrophone": { "message": "Microphone" },
+  "setupPermissionLine": {
+    "message": "$DEVICE$: $STATE$.",
+    "placeholders": { "device": { "content": "$1" }, "state": { "content": "$2" } }
+  },
+  "setupPermissionGranted": { "message": "access allowed" },
+  "setupPermissionPrompt": { "message": "not allowed yet" },
+  "setupPermissionDenied": { "message": "blocked. Allow it in Chrome's site settings for this extension" },
+  "setupCameraGrantedHint": { "message": "You can close this tab and start HeadNav from the toolbar." },
+  "setupMicrophoneGrantedHint": { "message": "Voice dictation can be used while HeadNav is on." },
+  "setupAccessBlocked": {
+    "message": "$DEVICE$: access was blocked ($ERROR$)",
+    "placeholders": { "device": { "content": "$1" }, "error": { "content": "$2" } }
+  },
+  "setupLocalVoiceLine": {
+    "message": "Local voice ($LANG$): $STATE$.",
+    "placeholders": { "lang": { "content": "$1" }, "state": { "content": "$2" } }
+  },
+  "setupLocalVoiceAvailable": { "message": "installed" },
+  "setupLocalVoiceDownloadable": { "message": "not installed for HeadNav yet" },
+  "setupLocalVoiceDownloading": { "message": "downloading…" },
+  "setupLocalVoiceUnavailable": { "message": "not available for this language in this Chrome" },
+  "setupLocalVoiceUnsupported": { "message": "not supported by this Chrome version" },
+  "setupLocalVoiceFailed": { "message": "could not be installed" }
+}

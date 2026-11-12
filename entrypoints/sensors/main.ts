@@ -105,7 +105,7 @@ async function main(): Promise<void> {
       audio: false,
     });
   } catch (error: unknown) {
-    broadcast({ type: 'DETECTION_ERROR', payload: { message: `Camera access failed: ${String(error)}` } });
+    broadcast({ type: 'DETECTION_ERROR', payload: { code: 'cameraFailed', detail: String(error) } });
     return;
   }
 
@@ -114,7 +114,7 @@ async function main(): Promise<void> {
     await video.play();
     await waitForVideoFrame(video);
   } catch (error: unknown) {
-    broadcast({ type: 'DETECTION_ERROR', payload: { message: `Video playback failed: ${String(error)}` } });
+    broadcast({ type: 'DETECTION_ERROR', payload: { code: 'videoFailed', detail: String(error) } });
     return;
   }
 
@@ -122,7 +122,7 @@ async function main(): Promise<void> {
   try {
     landmarker = await createLandmarker();
   } catch (error: unknown) {
-    broadcast({ type: 'DETECTION_ERROR', payload: { message: `Failed to load model: ${String(error)}` } });
+    broadcast({ type: 'DETECTION_ERROR', payload: { code: 'modelFailed', detail: String(error) } });
     return;
   }
 
@@ -167,7 +167,7 @@ async function main(): Promise<void> {
       clearInterval(watchdog);
       broadcast({
         type: 'DETECTION_ERROR',
-        payload: { message: 'No camera frames are being processed. Try stopping and starting again.' },
+        payload: { code: 'framesStalled', detail: '' },
       });
     }
   }, 1000);

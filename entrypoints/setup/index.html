@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>HeadNav — Setup</title>
+    <title>HeadNav</title>
     <style>
       :root {
         color-scheme: light dark;
@@ -77,46 +77,35 @@
   </head>
   <body>
     <main>
-      <h1>Set up HeadNav</h1>
-      <p>Someone can help with this page once. After that, HeadNav is used hands-free.</p>
+      <h1 data-i18n="setupHeading"></h1>
+      <p data-i18n="setupIntro"></p>
       <section>
-        <h2>Camera</h2>
-        <p>
-          HeadNav needs your camera to read head and eye movements. All processing happens
-          locally in your browser &mdash; no video ever leaves your machine.
-        </p>
-        <button id="grantCamera" type="button">Allow camera</button>
+        <h2 data-i18n="setupCameraHeading"></h2>
+        <p data-i18n="setupCameraText"></p>
+        <button id="grantCamera" type="button" data-i18n="setupAllowCamera"></button>
         <div id="cameraStatus" class="status"></div>
       </section>
       <section>
-        <h2>Microphone <span class="optional">(optional)</span></h2>
-        <p>Used only for voice dictation, and only while you dictate.</p>
-        <button id="grantMicrophone" type="button">Allow microphone</button>
+        <h2><span data-i18n="setupMicrophoneHeading"></span> <span class="optional" data-i18n="setupOptional"></span></h2>
+        <p data-i18n="setupMicrophoneText"></p>
+        <button id="grantMicrophone" type="button" data-i18n="setupAllowMicrophone"></button>
         <div id="microphoneStatus" class="status"></div>
 
-        <h3>Voice recognition</h3>
+        <h3 data-i18n="setupVoiceHeading"></h3>
         <div class="modes">
           <label class="mode">
             <input type="radio" name="speechMode" value="online" />
-            <span class="modeTitle">Online <span class="badge">recommended</span></span>
-            <span class="modeText">
-              Usually more accurate, works in more languages, needs no download and works on
-              any computer with Chrome. Needs internet, and Chrome sends your audio to Google to
-              turn it into text.
-            </span>
+            <span class="modeTitle"><span data-i18n="setupOnlineTitle"></span><span class="badge" data-i18n="setupRecommended"></span></span>
+            <span class="modeText" data-i18n="setupOnlineText"></span>
           </label>
           <label class="mode">
             <input type="radio" name="speechMode" value="local" />
-            <span class="modeTitle">Local</span>
-            <span class="modeText">
-              Your audio never leaves this computer, even without internet. Needs a one-time
-              download of the language package, may be less accurate, uses this computer's
-              processor and only works in recent Chrome versions and some languages.
-            </span>
+            <span class="modeTitle" data-i18n="setupLocalTitle"></span>
+            <span class="modeText" data-i18n="setupLocalText"></span>
           </label>
         </div>
         <div id="localVoiceStatus" class="status"></div>
-        <button id="installLocalVoice" type="button" disabled>Install local voice</button>
+        <button id="installLocalVoice" type="button" data-i18n="setupInstallLocalVoice" disabled></button>
       </section>
     </main>
     <script type="module" src="./main.ts"></script>

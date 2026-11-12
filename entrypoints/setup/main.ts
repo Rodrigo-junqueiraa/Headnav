@@ -1,19 +1,20 @@
+import { t, translatePage, type MessageKey } from '@/lib/i18n/translate';
 import { checkLocalVoice, installLocalVoice, type LocalVoiceStatus } from '@/lib/voice/localVoice';
 import { loadSpeechMode, parseSpeechMode, saveSpeechMode, type SpeechMode } from '@/lib/voice/speechMode';
 
 type DeviceAccess = {
   permission: PermissionName;
   constraints: MediaStreamConstraints;
-  label: string;
-  grantedHint: string;
+  label: MessageKey;
+  grantedHint: MessageKey;
   button: HTMLButtonElement | null;
   status: HTMLDivElement | null;
 };
 
-const PERMISSION_TEXT: Record<PermissionState, string> = {
-  granted: 'allowed',
-  prompt: 'not allowed yet',
-  denied: "blocked. Allow it in Chrome's site settings for this extension",
+const PERMISSION_TEXT: Record<PermissionState, MessageKey> = {
+  granted: 'setupPermissionGranted',
+  prompt: 'setupPermissionPrompt',
+  denied: 'setupPermissionDenied',
 };
 
 const PERMISSION_CLASS: Record<PermissionState, string> = {
@@ -22,12 +23,12 @@ const PERMISSION_CLASS: Record<PermissionState, string> = {
   denied: 'error',
 };
 
-const LOCAL_VOICE_TEXT: Record<LocalVoiceStatus, string> = {
-  available: 'installed',
-  downloadable: 'not installed for HeadNav yet',
-  downloading: 'downloading…',
-  unavailable: 'not available for this language in this Chrome',
-  unsupported: 'not supported by this Chrome version',
+const LOCAL_VOICE_TEXT: Record<LocalVoiceStatus, MessageKey> = {
+  available: 'setupLocalVoiceAvailable',
+  downloadable: 'setupLocalVoiceDownloadable',
+  downloading: 'setupLocalVoiceDownloading',
+  unavailable: 'setupLocalVoiceUnavailable',
+  unsupported: 'setupLocalVoiceUnsupported',
 };
 
 const LOCAL_VOICE_CLASS: Record<LocalVoiceStatus, string> = {
@@ -45,16 +46,16 @@ const devices: DeviceAccess[] = [
   {
     permission: 'camera',
     constraints: { video: true, audio: false },
-    label: 'Camera',
-    grantedHint: 'You can close this tab and start HeadNav from the toolbar.',
+    label: 'setupDeviceCamera',
+    grantedHint: 'setupCameraGrantedHint',
     button: document.querySelector<HTMLButtonElement>('#grantCamera'),
     status: document.querySelector<HTMLDivElement>('#cameraStatus'),
   },
   {
     permission: 'microphone',
     constraints: { video: false, audio: true },
-    label: 'Microphone',
-    grantedHint: 'Voice dictation can be used while HeadNav is on.',
+    label: 'setupDeviceMicrophone',
+    grantedHint: 'setupMicrophoneGrantedHint',
     button: document.querySelector<HTMLButtonElement>('#grantMicrophone'),
     status: document.querySelector<HTMLDivElement>('#microphoneStatus'),
   },
@@ -71,8 +72,9 @@ function setStatus(element: HTMLElement | null, text: string, state: string): vo
 }
 
 function showPermission(device: DeviceAccess, state: PermissionState): void {
-  const hint = state === 'granted' ? ` ${device.grantedHint}` : '';
-  setStatus(device.status, `${device.label}: ${PERMISSION_TEXT[state]}.${hint}`, PERMISSION_CLASS[state]);
+  const line = t('setupPermissionLine', [t(device.label), t(PERMISSION_TEXT[state])]);
+  const hint = state === 'granted' ? ` ${t(device.grantedHint)}` : '';
+  setStatus(device.status, `${line}${hint}`, PERMISSION_CLASS[state]);
 }
 
 function watchPermission(device: DeviceAccess): void {
@@ -91,12 +93,16 @@ async function requestAccess(device: DeviceAccess): Promise<void> {
     stream.getTracks().forEach((track) => track.stop());
     showPermission(device, 'granted');
   } catch (error: unknown) {
-    setStatus(device.status, `${device.label} access was blocked: ${String(error)}`, 'error');
+    setStatus(device.status, t('setupAccessBlocked', [t(device.label), String(error)]), 'error');
   }
 }
 
 function showLocalVoice(status: LocalVoiceStatus): void {
-  setStatus(localVoiceStatusEl, `Local voice (${voiceLang}): ${LOCAL_VOICE_TEXT[status]}.`, LOCAL_VOICE_CLASS[status]);
+  setStatus(
+    localVoiceStatusEl,
+    t('setupLocalVoiceLine', [voiceLang, t(LOCAL_VOICE_TEXT[status])]),
+    LOCAL_VOICE_CLASS[status],
+  );
   if (installButton) installButton.disabled = status !== 'downloadable';
 }
 
@@ -112,13 +118,16 @@ async function installFromClick(): Promise<void> {
     await refreshLocalVoice();
     return;
   }
-  setStatus(localVoiceStatusEl, `Local voice (${voiceLang}): could not be installed.`, 'error');
+  setStatus(localVoiceStatusEl, t('setupLocalVoiceLine', [voiceLang, t('setupLocalVoiceFailed')]), 'error');
   if (installButton) installButton.disabled = false;
 }
 
 function selectMode(mode: SpeechMode): void {
   for (const input of modeInputs) input.checked = input.value === mode;
 }
+
+translatePage();
+document.title = t('setupTitle');
 
 for (const device of devices) {
   device.button?.addEventListener('click', () => {
