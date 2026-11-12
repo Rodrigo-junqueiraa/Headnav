@@ -6,6 +6,10 @@ mobility (motor disabilities, tetraplegia).
 
 > **Privacy first:** all camera processing happens **locally, in your browser**. No video
 > frame ever leaves your machine, and no telemetry is collected.
+>
+> **Voice dictation is optional.** In **local** mode the audio stays on your computer. In
+> **online** mode Chrome sends the audio to Google to turn it into text, and HeadNav asks
+> for your authorization every time before the microphone opens.
 
 ## Why
 
@@ -44,7 +48,7 @@ Work in progress. Roadmap:
 | 2 | Head-controlled cursor (smoothed) | ✅ |
 | 3 | Hands-free click (dwell with a magnet on targets) | ✅ |
 | 4 | Gesture navigation (eye hold for back/forward, mouth hold to pause, edge scroll) | ✅ |
-| 5 | Voice dictation into text fields (optional) | ⬜ |
+| 5 | Voice dictation into text fields (optional, online or local) | ✅ |
 | 6 | Calibration + configuration | ⬜ |
 | 7 | Polish (demo GIF, diagram, tests) | ⬜ |
 
