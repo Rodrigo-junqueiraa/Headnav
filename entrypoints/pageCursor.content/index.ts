@@ -383,7 +383,8 @@ export default defineContentScript({
 
       const panelOpen = dictation.stage !== 'closed';
       const panelOnly = voiceActive || isCapturing();
-      if (!panelOnly && !panelOpen && runEdgeScroll(elapsedMs, now)) return;
+      if (panelOnly || panelOpen) clearEdgeOverlay();
+      else if (runEdgeScroll(elapsedMs, now)) return;
 
       if (clickingPaused || (panelOnly && !panelOpen)) {
         magnet = null;
@@ -454,6 +455,10 @@ export default defineContentScript({
 
     if (document.body) attach();
     else document.addEventListener('DOMContentLoaded', attach, { once: true });
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && isCapturing()) dispatchDictation({ type: 'close' });
+    });
 
     chrome.runtime.onMessage.addListener((message) => {
       const runtimeMessage = message as RuntimeMessage;

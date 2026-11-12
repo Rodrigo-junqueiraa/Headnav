@@ -2,6 +2,7 @@ import { OneEuroFilter } from '@/lib/cursor/oneEuroFilter';
 import { mapPoseToNormalized } from '@/lib/cursor/poseToScreen';
 import { JawHoldDetector } from '@/lib/gestures/jawHold';
 import { WinkHoldDetector } from '@/lib/gestures/winkHold';
+import { t } from '@/lib/i18n/translate';
 import type { DetectionStatus, ForwardResponse, GestureKind, RuntimeMessage, StatusResponse } from '@/lib/messages';
 import { FacePresenceTracker } from '@/lib/tracking/facePresence';
 import { SpeechGestureGuard } from '@/lib/voice/speechGestureGuard';
@@ -11,6 +12,9 @@ type DictationSession = { id: string; tabId: number | null };
 
 const OFFSCREEN_URL = 'sensors.html';
 const CURSOR_FILTER_CONFIG = { minCutoff: 0.5, beta: 0.6 };
+const FACE_LOST_STOP_MS = 1000;
+const CAMERA_BADGE_COLOR = '#15803d';
+const MICROPHONE_BADGE_COLOR = '#dc2626';
 const cursorFilterX = new OneEuroFilter(CURSOR_FILTER_CONFIG);
 const cursorFilterY = new OneEuroFilter(CURSOR_FILTER_CONFIG);
 const winkDetector = new WinkHoldDetector();
@@ -22,6 +26,8 @@ let clickingPaused = false;
 let voiceActive = false;
 let facePresent = true;
 let session: DictationSession | null = null;
+let microphoneOn = false;
+let faceStopSentFor: string | null = null;
 
 async function hasOffscreenDocument(): Promise<boolean> {
   const contexts = await chrome.runtime.getContexts({
@@ -74,8 +80,42 @@ async function stopSession(sessionId: string | null): Promise<ForwardResponse> {
 
 async function abortSession(sessionId: string | null): Promise<ForwardResponse> {
   if (sessionId !== null && session?.id !== sessionId) return { ok: false };
+  const aborted = session;
   session = null;
+  if (aborted?.tabId != null) {
+    const notice: RuntimeMessage = { type: 'SPEECH_ERROR', payload: { code: 'aborted', sessionId: aborted.id } };
+    chrome.tabs.sendMessage(aborted.tabId, notice).catch(() => {});
+  }
   return forwardToSensors({ type: 'SPEECH_ABORT' });
+}
+
+function abortSessionOfTab(matches: (sessionTabId: number) => boolean): void {
+  if (session?.tabId == null || !matches(session.tabId)) return;
+  void abortSession(session.id);
+}
+
+async function updateActionBadge(): Promise<void> {
+  const running = await hasOffscreenDocument();
+  const badge = microphoneOn ? t('actionBadgeMicrophone') : running ? t('actionBadgeCamera') : '';
+  await chrome.action.setBadgeText({ text: badge });
+  if (badge !== '') {
+    await chrome.action.setBadgeBackgroundColor({ color: microphoneOn ? MICROPHONE_BADGE_COLOR : CAMERA_BADGE_COLOR });
+  }
+  const title = microphoneOn ? 'actionTitleMicrophoneOn' : running ? 'actionTitleCameraOn' : 'actionTitleOff';
+  await chrome.action.setTitle({ title: t(title) });
+}
+
+function setMicrophoneOn(on: boolean): void {
+  if (on === microphoneOn) return;
+  microphoneOn = on;
+  void updateActionBadge().catch(() => {});
+}
+
+function stopListeningWithoutFace(timestampMs: number): void {
+  if (!session || !microphoneOn || faceStopSentFor === session.id) return;
+  if (facePresence.missingForMs(timestampMs) < FACE_LOST_STOP_MS) return;
+  faceStopSentFor = session.id;
+  void stopSession(session.id);
 }
 
 function relaySpeechEvent(message: RuntimeMessage, sessionId: string, finished: boolean): void {
@@ -146,6 +186,7 @@ function updateFacePresence(status: DetectionStatus): void {
 function handleDetectionStatus(status: DetectionStatus): void {
   updateVoiceActive(status.timestamp);
   updateFacePresence(status);
+  stopListeningWithoutFace(status.timestamp);
   if (!status.faceDetected) return;
   if (!voiceActive && runFaceGestures(status)) return;
 
@@ -177,6 +218,7 @@ async function startDetection(): Promise<void> {
         'Run the webcam and face-landmark detection locally for hands-free navigation, and the microphone when the user starts voice dictation.',
     });
   }
+  await updateActionBadge().catch(() => {});
   await broadcastToTabs({ type: 'DETECTION_STATE', payload: { running: true } });
 }
 
@@ -193,6 +235,9 @@ async function stopDetection(): Promise<void> {
   clickingPaused = false;
   voiceActive = false;
   facePresent = true;
+  microphoneOn = false;
+  faceStopSentFor = null;
+  await updateActionBadge().catch(() => {});
   await broadcastToTabs({ type: 'DETECTION_STATE', payload: { running: false } });
 }
 
@@ -249,6 +294,7 @@ export default defineBackground(() => {
         const ended = runtimeMessage.payload.phase === 'ended';
         if (ended) speechGuard.end(Date.now());
         else speechGuard.start(Date.now());
+        setMicrophoneOn(!ended);
         relaySpeechEvent(runtimeMessage, runtimeMessage.payload.sessionId, ended);
         return false;
       }
@@ -257,10 +303,20 @@ export default defineBackground(() => {
         return false;
       case 'SPEECH_ERROR':
         speechGuard.end(Date.now());
+        setMicrophoneOn(false);
         relaySpeechEvent(runtimeMessage, runtimeMessage.payload.sessionId, true);
         return false;
       default:
         return false;
     }
   });
+
+  chrome.tabs.onActivated.addListener(({ tabId }) => abortSessionOfTab((sessionTabId) => sessionTabId !== tabId));
+  chrome.tabs.onRemoved.addListener((tabId) => abortSessionOfTab((sessionTabId) => sessionTabId === tabId));
+  chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+    if (changeInfo.status !== 'loading' && changeInfo.url === undefined) return;
+    abortSessionOfTab((sessionTabId) => sessionTabId === tabId);
+  });
+
+  void updateActionBadge().catch(() => {});
 });

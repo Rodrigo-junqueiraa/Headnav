@@ -5,6 +5,12 @@
   "speechModeOnline": { "message": "online" },
   "speechModeLocal": { "message": "local" },
 
+  "actionBadgeCamera": { "message": "CAM" },
+  "actionBadgeMicrophone": { "message": "MIC" },
+  "actionTitleOff": { "message": "HeadNav — desligado" },
+  "actionTitleCameraOn": { "message": "HeadNav — câmera ligada" },
+  "actionTitleMicrophoneOn": { "message": "HeadNav — câmera e microfone ligados" },
+
   "popupStatusDot": { "message": "status da detecção" },
   "popupStart": { "message": "Iniciar" },
   "popupStop": { "message": "Parar" },
