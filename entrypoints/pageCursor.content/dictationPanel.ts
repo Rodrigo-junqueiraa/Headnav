@@ -1,9 +1,9 @@
 import { t, type MessageKey } from '@/lib/i18n/translate';
 import type { SpeechErrorCode } from '@/lib/messages';
-import type { DictationStage, DictationState } from '@/lib/voice/dictationFlow';
+import type { DictationState } from '@/lib/voice/dictationFlow';
 import type { SpeechMode } from '@/lib/voice/speechMode';
 
-export type PanelAction = 'speak' | 'finish' | 'close';
+export type PanelAction = 'speak' | 'finish' | 'insert' | 'search' | 'close';
 export type PanelPlacement = 'upper' | 'lower';
 
 type ButtonTone = 'primary' | 'positive' | 'neutral';
@@ -37,23 +37,38 @@ const ERROR_TEXT: Record<SpeechErrorCode, MessageKey> = {
   startFailed: 'panelErrorGeneric',
 };
 
+const RETRYABLE_ERRORS = new Set<SpeechErrorCode>(['no-speech', 'network', 'aborted', 'phrases-not-supported', 'startFailed']);
+
 function speakLabel(mode: SpeechMode, again: boolean): MessageKey {
   if (mode === 'online') return again ? 'panelAllowAndSpeakAgain' : 'panelAllowAndSpeak';
   return again ? 'panelSpeakAgain' : 'panelSpeak';
 }
 
-function slotsFor(stage: DictationStage, mode: SpeechMode): SlotSpecs {
+function canRetry(state: DictationState): boolean {
+  return state.stage === 'error' && RETRYABLE_ERRORS.has(state.errorCode ?? 'startFailed');
+}
+
+function slotsFor(state: DictationState, mode: SpeechMode, searchField: boolean): SlotSpecs {
   const close: ButtonSpec = { action: 'close', label: 'panelClose', tone: 'neutral' };
   const cancel: ButtonSpec = { action: 'close', label: 'panelCancel', tone: 'neutral' };
-  switch (stage) {
+  switch (state.stage) {
     case 'ready':
       return [{ action: 'speak', label: speakLabel(mode, false), tone: 'primary' }, null, close];
     case 'starting':
       return [null, null, cancel];
     case 'listening':
       return [null, { action: 'finish', label: 'panelDone', tone: 'positive' }, cancel];
-    case 'review':
-      return [{ action: 'speak', label: speakLabel(mode, true), tone: 'neutral' }, null, close];
+    case 'review': {
+      const commit: ButtonSpec = searchField
+        ? { action: 'search', label: 'panelSearch', tone: 'primary' }
+        : { action: 'insert', label: 'panelInsert', tone: 'primary' };
+      return [{ action: 'speak', label: speakLabel(mode, true), tone: 'neutral' }, commit, cancel];
+    }
+    case 'error': {
+      const retryLabel: MessageKey = mode === 'online' ? 'panelAllowAndTryAgain' : 'panelTryAgain';
+      const retry: ButtonSpec = canRetry(state) ? { action: 'speak', label: retryLabel, tone: 'neutral' } : null;
+      return [retry, null, close];
+    }
     default:
       return [null, null, close];
   }
@@ -205,7 +220,7 @@ export class DictationPanel {
     return element === this.host;
   }
 
-  render(state: DictationState, mode: SpeechMode, placement: PanelPlacement): void {
+  render(state: DictationState, mode: SpeechMode, placement: PanelPlacement, searchField: boolean): void {
     this.host.style.display = 'block';
     this.host.style.top = placement === 'upper' ? `${EDGE_OFFSET_PX}px` : 'auto';
     this.host.style.bottom = placement === 'lower' ? `${EDGE_OFFSET_PX}px` : 'auto';
@@ -223,11 +238,11 @@ export class DictationPanel {
     this.transcript.style.color = state.isFinal ? '#ffffff' : '#94a3b8';
     this.transcript.style.fontStyle = state.isFinal ? 'normal' : 'italic';
 
-    const showNotice = mode === 'online' && state.stage === 'review';
+    const showNotice = mode === 'online' && (state.stage === 'review' || canRetry(state));
     this.notice.style.display = showNotice ? 'block' : 'none';
     this.notice.textContent = showNotice ? t('panelOnlineNotice') : '';
 
-    slotsFor(state.stage, mode).forEach((spec, index) => {
+    slotsFor(state, mode, searchField).forEach((spec, index) => {
       const button = this.slots[index];
       if (button) this.applySlot(button, spec);
     });

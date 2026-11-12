@@ -11,7 +11,7 @@ import {
   type DictationState,
 } from '@/lib/voice/dictationFlow';
 import { DEFAULT_SPEECH_MODE, type SpeechMode } from '@/lib/voice/speechMode';
-import { findTextField } from '@/lib/voice/textField';
+import { findTextField, insertDictation, isSearchField, submitSearch } from '@/lib/voice/textField';
 import { DictationPanel, type PanelAction, type PanelPlacement } from './dictationPanel';
 
 type OverlayKind = GestureKind | 'scrollUp' | 'scrollDown';
@@ -37,6 +37,7 @@ export default defineContentScript({
     const PAUSE_COLOR = '#a78bfa';
     const SCROLL_COLOR = '#34d399';
     const FRAME_GAP_RESET_MS = 500;
+    const SUBMIT_DELAY_MS = 80;
     const MAGNET_MAX_AREA_RATIO = 0.25;
 
     if (document.getElementById(CURSOR_ID)) return;
@@ -131,6 +132,7 @@ export default defineContentScript({
     let frameId: number | null = null;
     let dictation: DictationState = CLOSED_DICTATION;
     let dictationField: HTMLElement | null = null;
+    let dictationIsSearch = false;
     let dictationPlacement: PanelPlacement = 'lower';
     let dictationSessionId: string | null = null;
     let speechMode: SpeechMode = DEFAULT_SPEECH_MODE;
@@ -317,11 +319,25 @@ export default defineContentScript({
         dictationField = null;
         return;
       }
-      panel.render(state, speechMode, dictationPlacement);
+      panel.render(state, speechMode, dictationPlacement, dictationIsSearch);
+    };
+
+    const commitDictation = (submit: boolean): void => {
+      const field = dictationField;
+      const text = dictation.text;
+      try {
+        if (dictation.stage === 'review' && field?.isConnected && text !== '') {
+          insertDictation(field, text, dictationIsSearch);
+          if (submit) setTimeout(() => submitSearch(field), SUBMIT_DELAY_MS);
+        }
+      } finally {
+        dispatchDictation({ type: 'commit' });
+      }
     };
 
     const handlePanelAction = (action: PanelAction): void => {
-      dispatchDictation({ type: action });
+      if (action === 'insert' || action === 'search') commitDictation(action === 'search');
+      else dispatchDictation({ type: action });
     };
 
     const placementFor = (field: HTMLElement): PanelPlacement => {
@@ -331,6 +347,7 @@ export default defineContentScript({
 
     const openDictation = (field: HTMLElement): void => {
       dictationField = field;
+      dictationIsSearch = isSearchField(field);
       dictationPlacement = placementFor(field);
       void chrome.runtime
         .sendMessage({ type: 'QUERY_STATUS' })

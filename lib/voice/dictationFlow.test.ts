@@ -151,6 +151,27 @@ describe('advanceDictation', () => {
     expect(advanceDictation(failed, { type: 'speak' }, 1200, timing).effect).toBe('startMic');
   });
 
+  it('closes after the reviewed text is committed', () => {
+    const review = run([
+      [{ type: 'open' }, 0],
+      [{ type: 'speak' }, 100],
+      [{ type: 'transcript', text: 'gatos', isFinal: true }, 400],
+      [{ type: 'ended' }, 500],
+    ]);
+    const step = advanceDictation(review, { type: 'commit' }, 900, timing);
+    expect(step.state.stage).toBe('closed');
+    expect(step.effect).toBeNull();
+  });
+
+  it('only commits from the review', () => {
+    const listening = run([
+      [{ type: 'open' }, 0],
+      [{ type: 'speak' }, 100],
+      [{ type: 'listening' }, 300],
+    ]);
+    expect(advanceDictation(listening, { type: 'commit' }, 400, timing).state).toBe(listening);
+  });
+
   it('closes an untouched panel after the ready timeout', () => {
     const ready = run([[{ type: 'open' }, 0]]);
     expect(advanceDictation(ready, { type: 'tick' }, 19999, timing).state.stage).toBe('ready');

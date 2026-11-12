@@ -120,6 +120,10 @@
   "panelListening": { "message": "Listening — speak now" },
   "panelMicOn": { "message": "Microphone on" },
   "panelReview": { "message": "This is what I understood:" },
+  "panelSearch": { "message": "Search" },
+  "panelInsert": { "message": "Insert" },
+  "panelTryAgain": { "message": "Try again" },
+  "panelAllowAndTryAgain": { "message": "Allow and try again" },
   "panelErrorNoSpeech": { "message": "I didn't hear anything. Try speaking a little closer to the microphone." },
   "panelErrorNetwork": { "message": "There is no internet connection, so online voice typing is unavailable." },
   "panelErrorMicBlocked": {

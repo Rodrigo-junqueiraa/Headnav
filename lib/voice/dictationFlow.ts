@@ -18,6 +18,7 @@ export type DictationEvent =
   | { type: 'ended' }
   | { type: 'failed'; code: SpeechErrorCode }
   | { type: 'finish' }
+  | { type: 'commit' }
   | { type: 'close' }
   | { type: 'tick' };
 
@@ -123,5 +124,8 @@ export function advanceDictation(
     case 'finish':
       if (state.stage !== 'listening') return unchanged;
       return { state, effect: 'stopMic' };
+    case 'commit':
+      if (state.stage !== 'review') return unchanged;
+      return { state: CLOSED_DICTATION, effect: null };
   }
 }

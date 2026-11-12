@@ -120,6 +120,10 @@
   "panelListening": { "message": "Ouvindo — pode falar" },
   "panelMicOn": { "message": "Microfone ligado" },
   "panelReview": { "message": "Foi isto que eu entendi:" },
+  "panelSearch": { "message": "Buscar" },
+  "panelInsert": { "message": "Inserir" },
+  "panelTryAgain": { "message": "Tentar de novo" },
+  "panelAllowAndTryAgain": { "message": "Permitir e tentar de novo" },
   "panelErrorNoSpeech": { "message": "Não ouvi nada. Tente falar um pouco mais perto do microfone." },
   "panelErrorNetwork": { "message": "Sem conexão com a internet, o ditado online está indisponível." },
   "panelErrorMicBlocked": {
