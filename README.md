@@ -1,5 +1,7 @@
 # HeadNav — Hands-free Navigation
 
+**English** · [Português](README.pt-BR.md)
+
 A Chrome extension that lets you **browse the web using only your head and eyes** — no
 hands required. Built as an **accessibility** tool for people with limited or no hand
 mobility (motor disabilities, tetraplegia).
