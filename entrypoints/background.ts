@@ -11,6 +11,8 @@ import { DEFAULT_SPEECH_MODE, loadSpeechMode, type SpeechMode } from '@/lib/voic
 type DictationSession = { id: string; tabId: number | null };
 
 const OFFSCREEN_URL = 'sensors.html';
+const CONTENT_SCRIPT_FILE = 'content-scripts/pageCursor.js';
+const PAGE_URL_PATTERNS = ['http://*/*', 'https://*/*'];
 const CURSOR_FILTER_CONFIG = { minCutoff: 0.5, beta: 0.6 };
 const FACE_LOST_STOP_MS = 1000;
 const CAMERA_BADGE_COLOR = '#15803d';
@@ -42,6 +44,21 @@ async function broadcastToTabs(message: RuntimeMessage): Promise<void> {
     tabs.map((tab) =>
       tab.id === undefined ? Promise.resolve() : chrome.tabs.sendMessage(tab.id, message).catch(() => {}),
     ),
+  );
+}
+
+async function injectIntoOpenTabs(): Promise<void> {
+  const tabs = await chrome.tabs.query({ url: PAGE_URL_PATTERNS });
+  await Promise.all(
+    tabs.map((tab) => {
+      if (tab.id === undefined || tab.discarded) return Promise.resolve();
+      return chrome.scripting
+        .executeScript({ target: { tabId: tab.id }, files: [CONTENT_SCRIPT_FILE] })
+        .then(
+          () => undefined,
+          () => undefined,
+        );
+    }),
   );
 }
 
@@ -309,6 +326,10 @@ export default defineBackground(() => {
       default:
         return false;
     }
+  });
+
+  chrome.runtime.onInstalled.addListener(() => {
+    void injectIntoOpenTabs().catch(() => {});
   });
 
   chrome.tabs.onActivated.addListener(({ tabId }) => abortSessionOfTab((sessionTabId) => sessionTabId !== tabId));

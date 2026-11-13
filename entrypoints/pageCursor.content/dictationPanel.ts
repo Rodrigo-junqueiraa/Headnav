@@ -10,7 +10,7 @@ type ButtonTone = 'primary' | 'positive' | 'neutral';
 type ButtonSpec = { action: PanelAction; label: MessageKey; tone: ButtonTone } | null;
 type SlotSpecs = [ButtonSpec, ButtonSpec, ButtonSpec];
 
-const HOST_ID = 'headnav-dictation';
+export const PANEL_HOST_ID = 'headnav-dictation';
 const EDGE_OFFSET_PX = 136;
 const FONT_STACK = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
 const IDLE_BORDER = '#334155';
@@ -112,7 +112,7 @@ export class DictationPanel {
     this.onAction = onAction;
 
     this.host = document.createElement('div');
-    this.host.id = HOST_ID;
+    this.host.id = PANEL_HOST_ID;
     this.host.style.cssText = css([
       'all: initial',
       'position: fixed',
@@ -254,6 +254,11 @@ export class DictationPanel {
     this.host.style.display = 'none';
     this.highlight(null);
     this.setListening(false);
+  }
+
+  detach(): void {
+    this.hide();
+    this.host.remove();
   }
 
   buttonAt(x: number, y: number): HTMLButtonElement | null {

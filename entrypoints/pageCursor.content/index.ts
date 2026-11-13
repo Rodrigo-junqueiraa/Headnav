@@ -12,13 +12,13 @@ import {
 } from '@/lib/voice/dictationFlow';
 import { DEFAULT_SPEECH_MODE, type SpeechMode } from '@/lib/voice/speechMode';
 import { findTextField, insertDictation, isSearchField, submitSearch } from '@/lib/voice/textField';
-import { DictationPanel, type PanelAction, type PanelPlacement } from './dictationPanel';
+import { DictationPanel, PANEL_HOST_ID, type PanelAction, type PanelPlacement } from './dictationPanel';
 
 type OverlayKind = GestureKind | 'scrollUp' | 'scrollDown';
 
 export default defineContentScript({
   matches: ['http://*/*', 'https://*/*'],
-  main() {
+  main(ctx) {
     const CURSOR_ID = 'headnav-cursor';
     const SVG_NS = 'http://www.w3.org/2000/svg';
     const DOT_SIZE = 32;
@@ -40,7 +40,7 @@ export default defineContentScript({
     const SUBMIT_DELAY_MS = 80;
     const MAGNET_MAX_AREA_RATIO = 0.25;
 
-    if (document.getElementById(CURSOR_ID)) return;
+    for (const staleId of [CURSOR_ID, PANEL_HOST_ID]) document.getElementById(staleId)?.remove();
 
     const cursor = document.createElement('div');
     cursor.id = CURSOR_ID;
@@ -375,6 +375,7 @@ export default defineContentScript({
     };
 
     const tick = (now: number): void => {
+      if (ctx.isInvalid) return;
       frameId = requestAnimationFrame(tick);
       const elapsedMs = lastFrameMs === null ? 0 : now - lastFrameMs;
       lastFrameMs = now;
@@ -456,11 +457,11 @@ export default defineContentScript({
     if (document.body) attach();
     else document.addEventListener('DOMContentLoaded', attach, { once: true });
 
-    document.addEventListener('visibilitychange', () => {
+    const handleVisibilityChange = (): void => {
       if (document.hidden && isCapturing()) dispatchDictation({ type: 'close' });
-    });
+    };
 
-    chrome.runtime.onMessage.addListener((message) => {
+    const handleMessage = (message: unknown): void => {
       const runtimeMessage = message as RuntimeMessage;
 
       if (runtimeMessage.type === 'DETECTION_STATE') {
@@ -518,6 +519,20 @@ export default defineContentScript({
           if (kind === 'forward') window.history.forward();
         }
       }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    chrome.runtime.onMessage.addListener(handleMessage);
+
+    ctx.onInvalidated(() => {
+      if (frameId !== null) cancelAnimationFrame(frameId);
+      frameId = null;
+      cursor.remove();
+      panel.detach();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      try {
+        chrome.runtime.onMessage.removeListener(handleMessage);
+      } catch {}
     });
 
     chrome.runtime
