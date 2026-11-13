@@ -15,6 +15,7 @@
   "popupStart": { "message": "Start" },
   "popupStop": { "message": "Stop" },
   "popupSetup": { "message": "Setup" },
+  "popupGuide": { "message": "How to use" },
   "popupFaceDetected": { "message": "Face detected" },
   "popupFps": { "message": "FPS" },
   "popupYaw": { "message": "Yaw (turn)" },
@@ -107,6 +108,71 @@
   "setupLocalVoiceUnavailable": { "message": "not available for this language in this Chrome" },
   "setupLocalVoiceUnsupported": { "message": "not supported by this Chrome version" },
   "setupLocalVoiceFailed": { "message": "could not be installed" },
+  "setupGuideText": { "message": "When everything is ready, see what each gesture does." },
+  "setupOpenGuide": { "message": "How to use HeadNav" },
+
+  "guideTitle": { "message": "How to use HeadNav" },
+  "guideIntro": {
+    "message": "HeadNav moves a cursor with your head and clicks when you hold it still. These are the gestures and what each one does."
+  },
+  "guideGesturesHeading": { "message": "Gestures" },
+  "guideColumnGesture": { "message": "Gesture" },
+  "guideColumnAction": { "message": "What it does" },
+  "guideColumnCursor": { "message": "What the cursor shows" },
+  "guideMoveGesture": { "message": "Move your head" },
+  "guideMoveAction": { "message": "Moves the cursor." },
+  "guideMoveCursor": { "message": "Blue circle" },
+  "guideDwellGesture": { "message": "Hold the cursor on a link, button or field for 1.5 s" },
+  "guideDwellAction": {
+    "message": "Clicks. A magnet pulls the cursor onto small targets. To click the same target again, move away and come back."
+  },
+  "guideDwellCursor": { "message": "Orange ring filling up" },
+  "guideBackGesture": { "message": "Close your left eye for 2 s, keeping the other one open" },
+  "guideBackAction": { "message": "Goes back to the previous page." },
+  "guideBackCursor": { "message": "Blue ring with ←; the cursor holds still during the gesture" },
+  "guideForwardGesture": { "message": "Close your right eye for 2 s, keeping the other one open" },
+  "guideForwardAction": { "message": "Goes forward to the next page." },
+  "guideForwardCursor": { "message": "Blue ring with →" },
+  "guidePauseGesture": { "message": "Open your mouth for 1.4 s" },
+  "guidePauseAction": {
+    "message": "Pauses clicking; repeat the gesture to click again. The cursor, eye gestures and scrolling keep working."
+  },
+  "guidePauseCursor": { "message": "Purple ring; while paused, a grey cursor with ⏸" },
+  "guideScrollGesture": { "message": "Hold the cursor in the top or bottom strip of the screen for 2 s" },
+  "guideScrollAction": { "message": "Scrolls the page; the closer to the edge, the faster." },
+  "guideScrollCursor": { "message": "Green ring with ↑ or ↓" },
+  "guideVoiceHeading": { "message": "Voice typing (optional)" },
+  "guideVoiceStep1": {
+    "message": "Hold the cursor on a text field, such as the YouTube search box: the voice typing panel opens."
+  },
+  "guideVoiceStep2": { "message": "Hold it on \"Allow and speak\" (online mode) or \"Speak\" (local mode)." },
+  "guideVoiceStep3": {
+    "message": "Speak. The text appears as you talk, and the microphone turns off by itself when you stop (15 s at most)."
+  },
+  "guideVoiceStep4": {
+    "message": "Check the text and hold the cursor on \"Search\" (search fields) or \"Insert\" (other fields). \"Speak again\" starts over and \"Cancel\" discards it."
+  },
+  "guideVoiceNote": {
+    "message": "While the microphone listens, gestures are paused and the cursor turns red with 🎤, so speaking never clicks or navigates by accident."
+  },
+  "guideSignalsHeading": { "message": "Signals" },
+  "guideSignalFace": {
+    "message": "Grey cursor with ?: your face is not being seen, so the cursor stops and nothing is clicked."
+  },
+  "guideSignalVoice": { "message": "Red cursor with 🎤: the microphone is listening." },
+  "guideSignalBadges": {
+    "message": "On the HeadNav icon, CAM means the camera is on and a red MIC means the microphone is on."
+  },
+  "guidePrivacyHeading": { "message": "Privacy" },
+  "guidePrivacyVideo": { "message": "Camera video never leaves your computer, and there is no telemetry." },
+  "guidePrivacyVoice": {
+    "message": "With local voice the audio stays on your computer. With online voice the audio goes to Google, and HeadNav asks for your authorization every time."
+  },
+  "guideSetupHeading": { "message": "Setup (once, with help)" },
+  "guideSetupText": {
+    "message": "On the setup page: allow the camera, allow the microphone (optional), choose online or local voice and install the local voice if you will use it. Then click Start on the HeadNav icon in the Chrome toolbar."
+  },
+  "guideOpenSetup": { "message": "Open setup" },
 
   "panelTitle": { "message": "Voice typing" },
   "panelModeOnline": { "message": "☁ Online (Google)" },

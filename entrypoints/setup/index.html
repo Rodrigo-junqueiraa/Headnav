@@ -53,6 +53,16 @@
       }
       button:hover { filter: brightness(1.05); }
       button:disabled { opacity: 0.5; cursor: default; filter: none; }
+      a.button {
+        display: inline-block;
+        padding: 12px 22px;
+        border-radius: 10px;
+        background: var(--accent);
+        color: #fff;
+        text-decoration: none;
+        font-size: 1rem;
+      }
+      a.button:hover { filter: brightness(1.05); }
       h3 { font-size: 1rem; margin: 24px 0 10px; }
       .modes { display: grid; gap: 10px; text-align: left; }
       .mode {
@@ -106,6 +116,10 @@
         </div>
         <div id="localVoiceStatus" class="status"></div>
         <button id="installLocalVoice" type="button" data-i18n="setupInstallLocalVoice" disabled></button>
+      </section>
+      <section>
+        <p data-i18n="setupGuideText"></p>
+        <a class="button" href="guide.html" data-i18n="setupOpenGuide"></a>
       </section>
     </main>
     <script type="module" src="./main.ts"></script>

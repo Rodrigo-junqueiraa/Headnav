@@ -15,6 +15,7 @@
   "popupStart": { "message": "Iniciar" },
   "popupStop": { "message": "Parar" },
   "popupSetup": { "message": "Configurar" },
+  "popupGuide": { "message": "Como usar" },
   "popupFaceDetected": { "message": "Rosto detectado" },
   "popupFps": { "message": "FPS" },
   "popupYaw": { "message": "Yaw (virar)" },
@@ -107,6 +108,71 @@
   "setupLocalVoiceUnavailable": { "message": "indisponível para este idioma neste Chrome" },
   "setupLocalVoiceUnsupported": { "message": "não suportada nesta versão do Chrome" },
   "setupLocalVoiceFailed": { "message": "não foi possível instalar" },
+  "setupGuideText": { "message": "Quando tudo estiver pronto, veja o que cada gesto faz." },
+  "setupOpenGuide": { "message": "Como usar o HeadNav" },
+
+  "guideTitle": { "message": "Como usar o HeadNav" },
+  "guideIntro": {
+    "message": "O HeadNav move um cursor com a sua cabeça e clica quando você o mantém parado. Estes são os gestos e o que cada um faz."
+  },
+  "guideGesturesHeading": { "message": "Gestos" },
+  "guideColumnGesture": { "message": "Gesto" },
+  "guideColumnAction": { "message": "O que faz" },
+  "guideColumnCursor": { "message": "O que o cursor mostra" },
+  "guideMoveGesture": { "message": "Mover a cabeça" },
+  "guideMoveAction": { "message": "Move o cursor." },
+  "guideMoveCursor": { "message": "Círculo azul" },
+  "guideDwellGesture": { "message": "Parar o cursor 1,5 s sobre um link, botão ou campo" },
+  "guideDwellAction": {
+    "message": "Clica. Um ímã puxa o cursor para alvos pequenos. Para clicar de novo no mesmo alvo, afaste o cursor e volte."
+  },
+  "guideDwellCursor": { "message": "Anel laranja que se enche" },
+  "guideBackGesture": { "message": "Fechar o olho esquerdo por 2 s, com o outro aberto" },
+  "guideBackAction": { "message": "Volta para a página anterior." },
+  "guideBackCursor": { "message": "Anel azul com ←; o cursor congela durante o gesto" },
+  "guideForwardGesture": { "message": "Fechar o olho direito por 2 s, com o outro aberto" },
+  "guideForwardAction": { "message": "Avança para a página seguinte." },
+  "guideForwardCursor": { "message": "Anel azul com →" },
+  "guidePauseGesture": { "message": "Abrir a boca por 1,4 s" },
+  "guidePauseAction": {
+    "message": "Pausa os cliques; repita o gesto para voltar a clicar. O cursor, os gestos de olho e a rolagem continuam funcionando."
+  },
+  "guidePauseCursor": { "message": "Anel roxo; enquanto pausado, cursor cinza com ⏸" },
+  "guideScrollGesture": { "message": "Deixar o cursor 2 s na faixa de cima ou de baixo da tela" },
+  "guideScrollAction": { "message": "Rola a página; quanto mais perto da borda, mais rápido." },
+  "guideScrollCursor": { "message": "Anel verde com ↑ ou ↓" },
+  "guideVoiceHeading": { "message": "Ditado por voz (opcional)" },
+  "guideVoiceStep1": {
+    "message": "Pare o cursor sobre um campo de texto, como a busca do YouTube: o painel de ditado abre."
+  },
+  "guideVoiceStep2": { "message": "Pare sobre \"Permitir e falar\" (modo online) ou \"Falar\" (modo local)." },
+  "guideVoiceStep3": {
+    "message": "Fale. O texto aparece enquanto você fala, e o microfone desliga sozinho quando você para (no máximo 15 s)."
+  },
+  "guideVoiceStep4": {
+    "message": "Confira o texto e pare sobre \"Buscar\" (campos de busca) ou \"Inserir\" (outros campos). \"Falar de novo\" refaz, e \"Cancelar\" descarta."
+  },
+  "guideVoiceNote": {
+    "message": "Enquanto o microfone escuta, os gestos ficam pausados e o cursor fica vermelho com 🎤, para que falar não clique nem navegue por engano."
+  },
+  "guideSignalsHeading": { "message": "Sinais" },
+  "guideSignalFace": {
+    "message": "Cursor cinza com ?: o rosto não está sendo visto, então o cursor para e nada é clicado."
+  },
+  "guideSignalVoice": { "message": "Cursor vermelho com 🎤: o microfone está ouvindo." },
+  "guideSignalBadges": {
+    "message": "No ícone do HeadNav, CAM indica a câmera ligada, e MIC em vermelho, o microfone ligado."
+  },
+  "guidePrivacyHeading": { "message": "Privacidade" },
+  "guidePrivacyVideo": { "message": "O vídeo da câmera nunca sai do seu computador, e não há telemetria." },
+  "guidePrivacyVoice": {
+    "message": "Na voz local, o áudio fica no seu computador. Na voz online, o áudio vai para o Google, e o HeadNav pede sua autorização a cada uso."
+  },
+  "guideSetupHeading": { "message": "Configuração (uma vez, com ajuda)" },
+  "guideSetupText": {
+    "message": "Na página de configuração: libere a câmera, libere o microfone (opcional), escolha a voz online ou local e instale a voz local, se for usá-la. Depois, clique em Iniciar no ícone do HeadNav, na barra do Chrome."
+  },
+  "guideOpenSetup": { "message": "Abrir configuração" },
 
   "panelTitle": { "message": "Ditado por voz" },
   "panelModeOnline": { "message": "☁ Online (Google)" },

@@ -13,6 +13,7 @@ import type { SpeechMode } from '@/lib/voice/speechMode';
 const dot = document.querySelector<HTMLSpanElement>('#dot');
 const toggleButton = document.querySelector<HTMLButtonElement>('#toggle');
 const grantButton = document.querySelector<HTMLButtonElement>('#grant');
+const guideButton = document.querySelector<HTMLButtonElement>('#guide');
 const errorEl = document.querySelector<HTMLDivElement>('#error');
 const hintEl = document.querySelector<HTMLDivElement>('#hint');
 
@@ -142,6 +143,10 @@ toggleButton?.addEventListener('click', () => {
 
 grantButton?.addEventListener('click', () => {
   void chrome.tabs.create({ url: chrome.runtime.getURL('setup.html') });
+});
+
+guideButton?.addEventListener('click', () => {
+  void chrome.tabs.create({ url: chrome.runtime.getURL('guide.html') });
 });
 
 voiceButton?.addEventListener('click', () => {

@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HeadNav</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #ffffff;
+        --fg: #1a1a1a;
+        --muted: #666;
+        --line: #e5e7eb;
+        --accent: #2563eb;
+        --badge-text: #ffffff;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #16181d;
+          --fg: #f2f3f5;
+          --muted: #9aa0a6;
+          --line: #2a2d34;
+        }
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        background: var(--bg);
+        color: var(--fg);
+        display: flex;
+        justify-content: center;
+        padding: 32px 24px 48px;
+      }
+      main { width: 100%; max-width: 820px; }
+      h1 { font-size: 1.6rem; margin: 0 0 8px; }
+      h2 { font-size: 1.2rem; margin: 0 0 12px; }
+      p, li { line-height: 1.55; }
+      p { color: var(--muted); }
+      section { border-top: 1px solid var(--line); padding: 22px 0; }
+      table { width: 100%; border-collapse: collapse; }
+      th, td { text-align: left; vertical-align: top; padding: 10px 12px 10px 0; border-bottom: 1px solid var(--line); }
+      th { font-size: 0.85rem; color: var(--muted); font-weight: 600; }
+      td:first-child { font-weight: 600; width: 32%; }
+      .cue { display: flex; align-items: center; gap: 10px; }
+      .chip {
+        flex: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        border: 4px solid var(--chip);
+        background: color-mix(in srgb, var(--chip) 25%, transparent);
+        font-weight: 700;
+        font-size: 0.85rem;
+      }
+      .chip.move { --chip: #2563eb; }
+      .chip.dwell { --chip: #f59e0b; }
+      .chip.navigate { --chip: #38bdf8; }
+      .chip.pause { --chip: #a78bfa; }
+      .chip.scroll { --chip: #34d399; }
+      .chip.voice { --chip: #ef4444; }
+      .chip.face { --chip: #64748b; }
+      ul.signals { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+      .badge {
+        flex: none;
+        display: inline-block;
+        padding: 2px 7px;
+        border-radius: 5px;
+        color: var(--badge-text);
+        font-size: 0.75rem;
+        font-weight: 700;
+      }
+      .badge.camera { background: #15803d; }
+      .badge.microphone { background: #dc2626; }
+      ol, ul { padding-left: 22px; }
+      a.button {
+        display: inline-block;
+        margin-top: 4px;
+        padding: 12px 22px;
+        border-radius: 10px;
+        background: var(--accent);
+        color: #fff;
+        text-decoration: none;
+        font-size: 1rem;
+      }
+      a.button:hover { filter: brightness(1.05); }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1 data-i18n="guideTitle"></h1>
+      <p data-i18n="guideIntro"></p>
+
+      <section>
+        <h2 data-i18n="guideGesturesHeading"></h2>
+        <table>
+          <thead>
+            <tr>
+              <th data-i18n="guideColumnGesture"></th>
+              <th data-i18n="guideColumnAction"></th>
+              <th data-i18n="guideColumnCursor"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td data-i18n="guideMoveGesture"></td>
+              <td data-i18n="guideMoveAction"></td>
+              <td><span class="cue"><span class="chip move"></span><span data-i18n="guideMoveCursor"></span></span></td>
+            </tr>
+            <tr>
+              <td data-i18n="guideDwellGesture"></td>
+              <td data-i18n="guideDwellAction"></td>
+              <td><span class="cue"><span class="chip dwell"></span><span data-i18n="guideDwellCursor"></span></span></td>
+            </tr>
+            <tr>
+              <td data-i18n="guideBackGesture"></td>
+              <td data-i18n="guideBackAction"></td>
+              <td><span class="cue"><span class="chip navigate">←</span><span data-i18n="guideBackCursor"></span></span></td>
+            </tr>
+            <tr>
+              <td data-i18n="guideForwardGesture"></td>
+              <td data-i18n="guideForwardAction"></td>
+              <td><span class="cue"><span class="chip navigate">→</span><span data-i18n="guideForwardCursor"></span></span></td>
+            </tr>
+            <tr>
+              <td data-i18n="guidePauseGesture"></td>
+              <td data-i18n="guidePauseAction"></td>
+              <td><span class="cue"><span class="chip pause">⏸</span><span data-i18n="guidePauseCursor"></span></span></td>
+            </tr>
+            <tr>
+              <td data-i18n="guideScrollGesture"></td>
+              <td data-i18n="guideScrollAction"></td>
+              <td><span class="cue"><span class="chip scroll">↕</span><span data-i18n="guideScrollCursor"></span></span></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2 data-i18n="guideVoiceHeading"></h2>
+        <ol>
+          <li data-i18n="guideVoiceStep1"></li>
+          <li data-i18n="guideVoiceStep2"></li>
+          <li data-i18n="guideVoiceStep3"></li>
+          <li data-i18n="guideVoiceStep4"></li>
+        </ol>
+        <p data-i18n="guideVoiceNote"></p>
+      </section>
+
+      <section>
+        <h2 data-i18n="guideSignalsHeading"></h2>
+        <ul class="signals">
+          <li class="cue"><span class="chip face">?</span><span data-i18n="guideSignalFace"></span></li>
+          <li class="cue"><span class="chip voice">🎤</span><span data-i18n="guideSignalVoice"></span></li>
+          <li class="cue">
+            <span class="badge camera">CAM</span><span class="badge microphone">MIC</span>
+            <span data-i18n="guideSignalBadges"></span>
+          </li>
+        </ul>
+      </section>
+
+      <section>
+        <h2 data-i18n="guidePrivacyHeading"></h2>
+        <ul>
+          <li data-i18n="guidePrivacyVideo"></li>
+          <li data-i18n="guidePrivacyVoice"></li>
+        </ul>
+      </section>
+
+      <section>
+        <h2 data-i18n="guideSetupHeading"></h2>
+        <p data-i18n="guideSetupText"></p>
+        <a class="button" href="setup.html" data-i18n="guideOpenSetup"></a>
+      </section>
+    </main>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

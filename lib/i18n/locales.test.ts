@@ -1,4 +1,7 @@
 import { describe, it, expect } from 'vitest';
+import guidePage from '../../entrypoints/guide/index.html?raw';
+import popupPage from '../../entrypoints/popup/index.html?raw';
+import setupPage from '../../entrypoints/setup/index.html?raw';
 import english from '../../public/_locales/en/messages.json';
 import portuguese from '../../public/_locales/pt_BR/messages.json';
 
@@ -41,6 +44,17 @@ describe('locale catalogs', () => {
         const translated = catalog[key];
         if (!source || !translated) continue;
         expect(placeholderNames(translated)).toEqual(placeholderNames(source));
+      }
+    }
+  });
+
+  it('contain every key the extension pages ask for', () => {
+    const pages: Record<string, string> = { guide: guidePage, popup: popupPage, setup: setupPage };
+    for (const [page, html] of Object.entries(pages)) {
+      const keys = [...html.matchAll(/data-i18n(?:-title)?="([^"]+)"/g)].map((match) => match[1] ?? '');
+      expect(keys.length, page).toBeGreaterThan(0);
+      for (const key of keys) {
+        expect(Object.keys(english), `${page} uses ${key}`).toContain(key);
       }
     }
   });
